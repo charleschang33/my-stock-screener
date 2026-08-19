@@ -168,7 +168,7 @@ def calculate_dmi(df, period=14):
 # ==========================================
 # 4. 數據引擎
 # ==========================================
-@st.cache_data(ttl=600, show_spinner=False)
+@st.cache_data(ttl=300, show_spinner=False)
 def get_stock_data_source(ticker_list, data_source="yfinance", interval="1d", period="2y"):
     result = {}
     if not ticker_list:
@@ -355,70 +355,93 @@ def show_fear_greed_detail():
 
 
 # ==========================================
-# 7. 主畫面 UI 與 篩選邏輯
+# 7. 即時市場行情動態抓取函式
+# ==========================================
+@st.cache_data(ttl=120, show_spinner=False)
+def fetch_live_market_quotes():
+    tickers = ["^GSPC", "^IXIC", "TX=F", "^TWII", "^TWOII", "TWD=X", "GC=F"]
+    data = yf.download(tickers, period="5d", interval="1d", auto_adjust=False, progress=False)
+    
+    quotes = {}
+    for t in tickers:
+        try:
+            if isinstance(data.columns, pd.MultiIndex):
+                df_t = data.xs(t, axis=1, level=1).dropna(how='all')
+            else:
+                df_t = data.dropna(how='all')
+            
+            if len(df_t) >= 2:
+                close_curr = float(df_t['Close'].iloc[-1])
+                close_prev = float(df_t['Close'].iloc[-2])
+                diff = close_curr - close_prev
+                pct = (diff / close_prev) * 100
+                quotes[t] = {"val": close_curr, "diff": diff, "pct": pct}
+            else:
+                quotes[t] = {"val": 0.0, "diff": 0.0, "pct": 0.0}
+        except Exception:
+            quotes[t] = {"val": 0.0, "diff": 0.0, "pct": 0.0}
+    return quotes
+
+
+# ==========================================
+# 8. 主畫面 UI 與 篩選邏輯
 # ==========================================
 st.markdown("<div class='main-header'>🧠 AI 投資資訊站 | 專屬量化選股儀表板</div>", unsafe_allow_html=True)
 
 if "selected_stock_code" not in st.session_state:
     st.session_state["selected_stock_code"] = "2330.TW"
 
+# 取得最新即時行情數據以填入頂部 8 大卡片
+live_quotes = fetch_live_market_quotes()
+
 # ------------------------------------------
-# Section 0: 大盤與各項行情看板
+# Section 0: 動態即時市場行情看板
 # ------------------------------------------
 m_col1, m_col2, m_col3, m_col4, m_col5, m_col6, m_col7, m_col8 = st.columns(8)
 
+def render_market_card(col, title, code, fmt_val, is_currency=False):
+    q = live_quotes.get(code, {"val": 0, "diff": 0, "pct": 0})
+    val = q["val"] if q["val"] > 0 else 0.0
+    diff = q["diff"]
+    pct = q["pct"]
+    
+    badge_cls = "badge-up" if diff >= 0 else "badge-down"
+    arrow = "↑" if diff >= 0 else "↓"
+    sign = "+" if diff >= 0 else ""
+    
+    val_str = f"{val:,.2f}" if not is_currency else f"{val:.2f}"
+    
+    with col:
+        st.markdown(f"""
+        <div class="market-card">
+            <div class="market-title">{title}</div>
+            <div class="market-val">{val_str}</div>
+            <div class="{badge_cls}">{arrow} {sign}{diff:.2f} ({sign}{pct:.2f}%)</div>
+        </div>
+        """, unsafe_allow_html=True)
+
 with m_col1:
-    st.markdown("""
-    <div class="market-card">
-        <div class="market-title">🇺🇸 S&P 500</div>
-        <div class="market-val">5,620.85</div>
-        <div class="badge-up">↑ +28.40 (+0.51%)</div>
-    </div>
-    """, unsafe_allow_html=True)
+    render_market_card(m_col1, "🇺🇸 S&P 500", "^GSPC", "5,620.85")
     if st.button("📈 看標普", key="btn_idx_sp500", use_container_width=True):
         st.session_state["selected_stock_code"] = "^GSPC"
 
 with m_col2:
-    st.markdown("""
-    <div class="market-card">
-        <div class="market-title">💻 Nasdaq</div>
-        <div class="market-val">17,850.30</div>
-        <div class="badge-up">↑ +112.60 (+0.63%)</div>
-    </div>
-    """, unsafe_allow_html=True)
+    render_market_card(m_col2, "💻 Nasdaq", "^IXIC", "17,850.30")
     if st.button("📈 看那指", key="btn_idx_nasdaq", use_container_width=True):
         st.session_state["selected_stock_code"] = "^IXIC"
 
 with m_col3:
-    st.markdown("""
-    <div class="market-card">
-        <div class="market-title">⚡ 臺指期指數</div>
-        <div class="market-val">23,860.00</div>
-        <div class="badge-up">↑ +168.00 (+0.71%)</div>
-    </div>
-    """, unsafe_allow_html=True)
+    render_market_card(m_col3, "⚡ 臺指期指數", "TX=F", "23,860.00")
     if st.button("📈 看臺指期", key="btn_idx_fut", use_container_width=True):
         st.session_state["selected_stock_code"] = "TX=F"
 
 with m_col4:
-    st.markdown("""
-    <div class="market-card">
-        <div class="market-title">🇹🇼 加權指數</div>
-        <div class="market-val">23,825.40</div>
-        <div class="badge-up">↑ +145.20 (+0.61%)</div>
-    </div>
-    """, unsafe_allow_html=True)
+    render_market_card(m_col4, "🇹🇼 加權指數", "^TWII", "23,825.40")
     if st.button("📈 看大盤", key="btn_idx_twii", use_container_width=True):
         st.session_state["selected_stock_code"] = "^TWII"
 
 with m_col5:
-    st.markdown("""
-    <div class="market-card">
-        <div class="market-title">🏢 櫃買指數</div>
-        <div class="market-val">268.35</div>
-        <div class="badge-up">↑ +1.85 (+0.69%)</div>
-    </div>
-    """, unsafe_allow_html=True)
+    render_market_card(m_col5, "🏢 櫃買指數", "^TWOII", "268.35")
     if st.button("📈 看櫃買", key="btn_idx_twoii", use_container_width=True):
         st.session_state["selected_stock_code"] = "^TWOII"
 
@@ -434,24 +457,12 @@ with m_col6:
         show_vix_detail()
 
 with m_col7:
-    st.markdown("""
-    <div class="market-card">
-        <div class="market-title">💵 美元/台幣</div>
-        <div class="market-val">31.91</div>
-        <div class="badge-up">↑ 升值 (+0.25%)</div>
-    </div>
-    """, unsafe_allow_html=True)
+    render_market_card(m_col7, "💵 美元/台幣", "TWD=X", "31.91", is_currency=True)
     if st.button("📈 看台幣", key="btn_idx_twd", use_container_width=True):
         st.session_state["selected_stock_code"] = "TWD=X"
 
 with m_col8:
-    st.markdown("""
-    <div class="market-card">
-        <div class="market-title">🥇 國際黃金</div>
-        <div class="market-val">4,395.80</div>
-        <div class="badge-up">↑ +18.40 (+0.42%)</div>
-    </div>
-    """, unsafe_allow_html=True)
+    render_market_card(m_col8, "🥇 國際黃金", "GC=F", "4,395.80")
     if st.button("📈 看黃金", key="btn_idx_gold", use_container_width=True):
         st.session_state["selected_stock_code"] = "GC=F"
 
@@ -484,7 +495,7 @@ with col3:
         show_fear_greed_detail()
 
 # ------------------------------------------
-# Section 1.2: 📈 市場漲跌幅排行榜 Top 100 模組 (已嚴格正負號過濾)
+# Section 1.2: 📈 市場漲跌幅排行榜 Top 100 模組 (已修復正負號過濾邏輯)
 # ------------------------------------------
 st.markdown("#### 📈 市場漲跌幅排行榜 (Top 100)")
 rank_tab_left, rank_tab_right = st.columns([1, 4])
@@ -517,10 +528,8 @@ df_ranking = pd.DataFrame({
 }).drop_duplicates(subset=["代號"]).reset_index(drop=True)
 
 if "🔥 漲幅最高" in rank_type:
-    # 嚴格過濾：只保留漲幅 > 0 的股票，由大到小排序
-    df_ranking = df_ranking[df_ranking["涨跌幅 (%)"] > 0].sort_values(by="涨跌幅 (%)", ascending=False).head(100) if "涨跌幅 (%)" in df_ranking.columns else df_ranking[df_ranking["漲跌幅 (%)"] > 0].sort_values(by="漲跌幅 (%)", ascending=False).head(100)
+    df_ranking = df_ranking[df_ranking["漲跌幅 (%)"] > 0].sort_values(by="漲跌幅 (%)", ascending=False).head(100)
 else:
-    # 嚴格過濾：只保留跌幅 < 0 的股票，由小到大排序（負數最大即跌幅最重）
     df_ranking = df_ranking[df_ranking["漲跌幅 (%)"] < 0].sort_values(by="漲跌幅 (%)", ascending=True).head(100)
 
 rank_event = st.dataframe(
