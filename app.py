@@ -376,7 +376,7 @@ for item in current_db:
     df['MA21'] = df['Close'].rolling(21, min_periods=1).mean()
     df['MA55'] = df['Close'].rolling(55, min_periods=1).mean()
     
-    # 計算量均線
+    # 計算量均線 (VMA5, VMA13, VMA34)
     df['VMA5'] = df['Volume'].rolling(5, min_periods=1).mean()
     df['VMA13'] = df['Volume'].rolling(13, min_periods=1).mean()
     df['VMA34'] = df['Volume'].rolling(34, min_periods=1).mean()
@@ -435,7 +435,7 @@ for item in current_db:
     if is_ma_aligned:
         tags.append("均線多頭")
             
-    # 條件 2-2: 量均線多頭
+    # 條件 2-2: 量均線多頭 (VMA5 > VMA13 > VMA34)
     is_vma_aligned = (curr['VMA5'] > curr['VMA13'] > curr['VMA34'])
     pass_vma = True
     if enable_vma_trend:
@@ -497,7 +497,7 @@ for item in current_db:
         })
 
 # ------------------------------------------
-# Section 4: 表格呈現（支援直接點擊行即時切換 K 線）
+# Section 4: 表格呈現（支援點選行自動聯動切換圖表）
 # ------------------------------------------
 df_result = pd.DataFrame(filtered_rows)
 
@@ -548,7 +548,7 @@ elif not df_result.empty:
         }
     )
     
-    # 若使用者點擊了表格任一列，自動更新選取的個股代號
+    # 點擊表格任一行時更新選取的股票
     if event and event.selection and event.selection.rows:
         selected_idx = event.selection.rows[0]
         st.session_state["selected_stock_code"] = df_result.iloc[selected_idx]["代號"]
@@ -560,16 +560,23 @@ elif not df_result.empty:
     # ------------------------------------------
     st.subheader("📈 個股技術分析與指標圖表")
     
-    stock_options = df_result["代號"].tolist()
-    default_index = 0
-    if st.session_state["selected_stock_code"] in stock_options:
-        default_index = stock_options.index(st.session_state["selected_stock_code"])
-        
-    selected_code = st.selectbox(
+    # 建立「代號 + 股名」選項字典映射
+    code_to_name = {row["代號"]: row["股名"] for _, row in df_result.iterrows()}
+    display_options = [f"{c} {code_to_name.get(c, '')}" for c in df_result["代號"].tolist()]
+    code_list = df_result["代號"].tolist()
+    
+    current_selected = st.session_state.get("selected_stock_code", code_list[0])
+    default_idx = code_list.index(current_selected) if current_selected in code_list else 0
+    
+    # 支援代號與股名一起顯示的下拉選單
+    selected_display = st.selectbox(
         "目前檢視個股（可直接點上方表格或此處切換）：",
-        stock_options,
-        index=default_index
+        display_options,
+        index=default_idx
     )
+    
+    # 解析出純代號
+    selected_code = selected_display.split(" ")[0]
     st.session_state["selected_stock_code"] = selected_code
     
     if selected_code and selected_code in raw_stock_data:
@@ -580,9 +587,10 @@ elif not df_result.empty:
         df_k['MA21'] = df_k['Close'].rolling(21, min_periods=1).mean()
         df_k['MA55'] = df_k['Close'].rolling(55, min_periods=1).mean()
         
-        # 2. 成交量均線 (VMA5, VMA20)
+        # 2. 成交量均線 (改為 5 均量, 13 均量, 34 均量)
         df_k['VMA5'] = df_k['Volume'].rolling(5, min_periods=1).mean()
-        df_k['VMA20'] = df_k['Volume'].rolling(20, min_periods=1).mean()
+        df_k['VMA13'] = df_k['Volume'].rolling(13, min_periods=1).mean()
+        df_k['VMA34'] = df_k['Volume'].rolling(34, min_periods=1).mean()
         
         # 3. 計算 KD 指標 (9, 3, 3)
         low_min = df_k['Low'].rolling(9, min_periods=1).min()
@@ -602,13 +610,13 @@ elif not df_result.empty:
         # 取最近 100 根 K 棒展示
         df_k = df_k.iloc[-100:]
         
-        # 建立三層子圖（主圖不放冗長標題，保持畫面簡潔乾淨）
+        # 建立三層子圖
         fig_k = make_subplots(
             rows=3, cols=1,
             shared_xaxes=True,
             vertical_spacing=0.04,
             row_heights=[0.58, 0.21, 0.21],
-            subplot_titles=("", "成交量 (VMA5 / VMA20)", "KD 指標 (9, 3, 3)")
+            subplot_titles=("", "成交量 (VMA5 / VMA13 / VMA34)", "KD 指標 (9, 3, 3)")
         )
         
         # 1. K線圖主圖
@@ -631,7 +639,7 @@ elif not df_result.empty:
         fig_k.add_trace(go.Scatter(x=df_k.index, y=df_k['MA21'], mode='lines', name='MA21', line=dict(color='#ec4899', width=1.5)), row=1, col=1)
         fig_k.add_trace(go.Scatter(x=df_k.index, y=df_k['MA55'], mode='lines', name='MA55', line=dict(color='#8b5cf6', width=1.8)), row=1, col=1)
         
-        # 2. 成交量副圖
+        # 2. 成交量副圖 (5 均量, 13 均量, 34 均量)
         v_colors = ['#ef4444' if c >= o else '#22c55e' for c, o in zip(df_k['Close'], df_k['Open'])]
         fig_k.add_trace(
             go.Bar(x=df_k.index, y=df_k['Volume'], name="成交量", marker_color=v_colors, showlegend=False),
@@ -642,11 +650,15 @@ elif not df_result.empty:
             row=2, col=1
         )
         fig_k.add_trace(
-            go.Scatter(x=df_k.index, y=df_k['VMA20'], mode='lines', name='20 均量', line=dict(color='#06b6d4', width=1.2)),
+            go.Scatter(x=df_k.index, y=df_k['VMA13'], mode='lines', name='13 均量', line=dict(color='#06b6d4', width=1.2)),
+            row=2, col=1
+        )
+        fig_k.add_trace(
+            go.Scatter(x=df_k.index, y=df_k['VMA34'], mode='lines', name='34 均量', line=dict(color='#10b981', width=1.2)),
             row=2, col=1
         )
         
-        # 3. KD 指標副圖 (隱藏上方重疊圖例，避免擠占版面)
+        # 3. KD 指標副圖
         fig_k.add_trace(
             go.Scatter(x=df_k.index, y=df_k['K'], mode='lines', name='K值', line=dict(color='#f59e0b', width=1.5), showlegend=False),
             row=3, col=1
@@ -656,7 +668,7 @@ elif not df_result.empty:
             row=3, col=1
         )
         
-        # KD 超買(80)超賣(20)參考線
+        # KD 超買超賣水平線
         fig_k.add_hline(y=80, line_dash="dot", line_color="#ef4444", line_width=1, row=3, col=1)
         fig_k.add_hline(y=20, line_dash="dot", line_color="#22c55e", line_width=1, row=3, col=1)
         
