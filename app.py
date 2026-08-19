@@ -81,6 +81,13 @@ div[data-baseweb="select"] input {
     padding: 2px 6px;
     border-radius: 6px;
 }
+.breadth-bar {
+    display: flex;
+    height: 12px;
+    border-radius: 6px;
+    overflow: hidden;
+    margin: 8px 0;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -324,11 +331,10 @@ if "selected_stock_code" not in st.session_state:
     st.session_state["selected_stock_code"] = "2330.TW"
 
 # ------------------------------------------
-# Section 0: 大盤與各項行情看板 (臺指期指數已移至加權指數左邊)
+# Section 0: 大盤與各項行情看板 (依紅字數字 1~8 順序排列)
 # ------------------------------------------
 m_col1, m_col2, m_col3, m_col4, m_col5, m_col6, m_col7, m_col8 = st.columns(8)
 
-# 1. 標普 S&P 500
 with m_col1:
     st.markdown("""
     <div class="market-card">
@@ -340,7 +346,6 @@ with m_col1:
     if st.button("📈 看標普", key="btn_idx_sp500", use_container_width=True):
         st.session_state["selected_stock_code"] = "^GSPC"
 
-# 2. 那斯達克 Nasdaq
 with m_col2:
     st.markdown("""
     <div class="market-card">
@@ -352,7 +357,6 @@ with m_col2:
     if st.button("📈 看那指", key="btn_idx_nasdaq", use_container_width=True):
         st.session_state["selected_stock_code"] = "^IXIC"
 
-# 3. 臺指期指數 (近月期貨 - 放置於加權指數左側)
 with m_col3:
     st.markdown("""
     <div class="market-card">
@@ -364,7 +368,6 @@ with m_col3:
     if st.button("📈 看臺指期", key="btn_idx_fut", use_container_width=True):
         st.session_state["selected_stock_code"] = "TX=F"
 
-# 4. 加權指數 (大盤)
 with m_col4:
     st.markdown("""
     <div class="market-card">
@@ -376,7 +379,6 @@ with m_col4:
     if st.button("📈 看大盤", key="btn_idx_twii", use_container_width=True):
         st.session_state["selected_stock_code"] = "^TWII"
 
-# 5. 櫃買指數 (OTC)
 with m_col5:
     st.markdown("""
     <div class="market-card">
@@ -388,7 +390,6 @@ with m_col5:
     if st.button("📈 看櫃買", key="btn_idx_twoii", use_container_width=True):
         st.session_state["selected_stock_code"] = "^TWOII"
 
-# 6. 選擇權 P/C Ratio
 with m_col6:
     st.markdown("""
     <div class="market-card">
@@ -400,7 +401,6 @@ with m_col6:
     if st.button("📊 波動率", key="btn_idx_opt", use_container_width=True):
         show_vix_detail()
 
-# 7. 美元/台幣匯率
 with m_col7:
     st.markdown("""
     <div class="market-card">
@@ -412,7 +412,6 @@ with m_col7:
     if st.button("📈 看台幣", key="btn_idx_twd", use_container_width=True):
         st.session_state["selected_stock_code"] = "TWD=X"
 
-# 8. 國際黃金
 with m_col8:
     st.markdown("""
     <div class="market-card">
@@ -453,59 +452,111 @@ with col3:
         show_fear_greed_detail()
 
 # ------------------------------------------
-# Section 1.5: 台股族群成交量價比較與成分股展開模組
+# Section 1.5: 族群成交量價比較 與 個股漲跌分佈（並排呈現）
 # ------------------------------------------
-st.markdown("#### 🔥 台股主要族群成交量與漲跌幅比較")
+col_sec_left, col_sec_right = st.columns([1.1, 0.9])
 
-sector_data = pd.DataFrame({
-    "族群名稱": ["半導體", "電腦週邊", "電子零組件", "其他電子/設備", "光電/鏡頭", "航運海運", "金融保險", "綠能重電"],
-    "成交金額 (億)": [1680, 840, 430, 310, 195, 210, 165, 120],
-    "成交比重 (%)": [42.5, 21.3, 10.9, 7.8, 4.9, 5.3, 4.2, 3.1],
-    "族群平均漲跌 (%)": [1.45, 0.82, -0.45, 1.85, 2.10, 0.35, -0.20, 0.95],
-    "指標領頭股": ["台積電、聯發科", "廣達、緯穎", "欣興、台達電", "致茂、志聖", "大立光、玉晶光", "長榮、陽明", "富邦金、國泰金", "華城、中興電"]
-})
+with col_sec_left:
+    st.markdown("#### 🔥 台股主要族群成交量與漲跌幅比較")
+    sector_data = pd.DataFrame({
+        "族群名稱": ["半導體", "電腦週邊", "電子零組件", "其他電子/設備", "光電/鏡頭", "航運海運", "金融保險", "綠能重電"],
+        "成交金額 (億)": [1680, 840, 430, 310, 195, 210, 165, 120],
+        "成交比重 (%)": [42.5, 21.3, 10.9, 7.8, 4.9, 5.3, 4.2, 3.1],
+        "族群平均漲跌 (%)": [1.45, 0.82, -0.45, 1.85, 2.10, 0.35, -0.20, 0.95]
+    })
 
-fig_sector = make_subplots(specs=[[{"secondary_y": True}]])
+    fig_sector = make_subplots(specs=[[{"secondary_y": True}]])
+    fig_sector.add_trace(
+        go.Bar(
+            x=sector_data["族群名稱"],
+            y=sector_data["成交金額 (億)"],
+            name="成交金額 (億元)",
+            marker_color="#3b82f6",
+            hovertemplate="<b>%{x}</b><br>成交金額: %{y} 億<br>資金比重: %{customdata}%<extra></extra>",
+            customdata=sector_data["成交比重 (%)"]
+        ),
+        secondary_y=False
+    )
+    scatter_colors = ['#ef4444' if pct >= 0 else '#22c55e' for pct in sector_data["族群平均漲跌 (%)"]]
+    fig_sector.add_trace(
+        go.Scatter(
+            x=sector_data["族群名稱"],
+            y=sector_data["族群平均漲跌 (%)"],
+            name="族群漲跌幅 (%)",
+            mode="lines+markers+text",
+            line=dict(color="#f59e0b", width=2.5),
+            marker=dict(size=8, color=scatter_colors),
+            text=[f"{pct:+.2f}%" for pct in sector_data["族群平均漲跌 (%)"]],
+            textposition="top center",
+            textfont=dict(color=scatter_colors, size=11, family="Arial Black")
+        ),
+        secondary_y=True
+    )
+    fig_sector.update_layout(
+        height=320,
+        margin=dict(l=10, r=10, t=30, b=10),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)'
+    )
+    fig_sector.update_yaxes(title_text="成交金額 (億)", secondary_y=False, showgrid=True, gridcolor="#f1f5f9")
+    fig_sector.update_yaxes(title_text="漲跌幅 (%)", secondary_y=True, showgrid=False, range=[-1.2, 3.2])
+    st.plotly_chart(fig_sector, use_container_width=True)
 
-fig_sector.add_trace(
-    go.Bar(
-        x=sector_data["族群名稱"],
-        y=sector_data["成交金額 (億)"],
-        name="成交金額 (億元)",
-        marker_color="#3b82f6",
-        hovertemplate="<b>%{x}</b><br>成交金額: %{y} 億<br>資金比重: %{customdata}%<extra></extra>",
-        customdata=sector_data["成交比重 (%)"]
-    ),
-    secondary_y=False
-)
+with col_sec_right:
+    c_head_left, c_head_right = st.columns([1.5, 1])
+    with c_head_left:
+        st.markdown("#### 📊 個股漲跌分佈")
+    with c_head_right:
+        market_breadth_type = st.radio("市場：", ["上市", "上櫃"], horizontal=True, label_visibility="collapsed")
 
-scatter_colors = ['#ef4444' if pct >= 0 else '#22c55e' for pct in sector_data["族群平均漲跌 (%)"]]
-fig_sector.add_trace(
-    go.Scatter(
-        x=sector_data["族群名稱"],
-        y=sector_data["族群平均漲跌 (%)"],
-        name="族群漲跌幅 (%)",
-        mode="lines+markers+text",
-        line=dict(color="#f59e0b", width=2.5),
-        marker=dict(size=9, color=scatter_colors),
-        text=[f"{pct:+.2f}%" for pct in sector_data["族群平均漲跌 (%)"]],
-        textposition="top center",
-        textfont=dict(color=scatter_colors, size=13, family="Arial Black")
-    ),
-    secondary_y=True
-)
+    # 上市與上櫃漲跌分佈數據
+    if market_breadth_type == "上市":
+        b_labels = ["漲停", ">5%", "2-5%", "0-2%", "平盤", "0-2%", "2-5%", "<5%", "跌停"]
+        b_counts = [9, 13, 71, 294, 115, 483, 105, 20, 1]
+        b_colors = ["#dc2626", "#ef4444", "#f87171", "#fca5a5", "#94a3b8", "#86efac", "#4ade80", "#22c55e", "#16a34a"]
+        up_cnt, down_cnt, flat_cnt = 387, 609, 115
+        total_cnt = up_cnt + down_cnt + flat_cnt
+    else:
+        b_labels = ["漲停", ">5%", "2-5%", "0-2%", "平盤", "0-2%", "2-5%", "<5%", "跌停"]
+        b_counts = [15, 22, 95, 260, 80, 310, 85, 18, 2]
+        b_colors = ["#dc2626", "#ef4444", "#f87171", "#fca5a5", "#94a3b8", "#86efac", "#4ade80", "#22c55e", "#16a34a"]
+        up_cnt, down_cnt, flat_cnt = 392, 415, 80
+        total_cnt = up_cnt + down_cnt + flat_cnt
 
-fig_sector.update_layout(
-    height=340,
-    margin=dict(l=20, r=20, t=35, b=20),
-    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-    paper_bgcolor='rgba(0,0,0,0)',
-    plot_bgcolor='rgba(0,0,0,0)'
-)
-fig_sector.update_yaxes(title_text="成交金額 (億元)", secondary_y=False, showgrid=True, gridcolor="#f1f5f9")
-fig_sector.update_yaxes(title_text="族群漲跌幅 (%)", secondary_y=True, showgrid=False, range=[-1.2, 3.2])
+    fig_breadth = go.Figure(go.Bar(
+        x=b_labels,
+        y=b_counts,
+        text=b_counts,
+        textposition='outside',
+        textfont=dict(size=11, family="Arial Black", color="#334155"),
+        marker_color=b_colors,
+        hovertemplate="<b>%{x}</b>: %{y} 家<extra></extra>"
+    ))
+    fig_breadth.update_layout(
+        height=240,
+        margin=dict(l=10, r=10, t=25, b=10),
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        yaxis=dict(showgrid=True, gridcolor="#f1f5f9", range=[0, max(b_counts) * 1.25])
+    )
+    st.plotly_chart(fig_breadth, use_container_width=True)
 
-st.plotly_chart(fig_sector, use_container_width=True)
+    up_pct = (up_cnt / total_cnt) * 100
+    down_pct = (down_cnt / total_cnt) * 100
+    flat_pct = (flat_cnt / total_cnt) * 100
+
+    # 漲跌比例色彩條與統計數值
+    st.markdown(f"""
+    <div class="breadth-bar">
+        <div style="width: {up_pct:.1f}%; background-color: #ef4444;"></div>
+        <div style="width: {flat_pct:.1f}%; background-color: #94a3b8;"></div>
+        <div style="width: {down_pct:.1f}%; background-color: #22c55e;"></div>
+    </div>
+    <div style="text-align: center; font-size: 13px; font-weight: 700; color: #334155;">
+        漲跌家數比 <span style="color:#ef4444;">{up_cnt} ({up_pct:.1f}%)</span> : <span style="color:#22c55e;">{down_cnt} ({down_pct:.1f}%)</span>
+    </div>
+    """, unsafe_allow_html=True)
 
 st.markdown("👇 **點選下方族群名稱，立即展開成分股與量價明細：**")
 selected_sector_tab = st.radio(
@@ -672,7 +723,7 @@ for item in current_db:
     pass_three_breakdown = True
     if enable_three_bar_breakdown:
         if not is_three_bar_breakdown:
-            pass_three_breakdown = False
+            pass_three_bar = False
     if is_three_bar_breakdown:
         tags.append("三盤跌破")
 
