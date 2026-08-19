@@ -91,9 +91,9 @@ div[data-baseweb="select"] input {
 MARKET_INDICES = [
     {"code": "^GSPC", "name": "S&P 500 (美股標普)"},
     {"code": "^IXIC", "name": "Nasdaq (那斯達克)"},
+    {"code": "TX=F", "name": "臺指期貨 (指數)"},
     {"code": "^TWII", "name": "加權指數 (大盤)"},
     {"code": "^TWOII", "name": "櫃買指數 (OTC)"},
-    {"code": "TX=F", "name": "臺指期貨 (指數)"},
     {"code": "TWD=X", "name": "美元/台幣匯率"},
     {"code": "GC=F", "name": "國際黃金期貨"}
 ]
@@ -324,7 +324,7 @@ if "selected_stock_code" not in st.session_state:
     st.session_state["selected_stock_code"] = "2330.TW"
 
 # ------------------------------------------
-# Section 0: 大盤與各項行情看板 (第5項已改為臺指期指數)
+# Section 0: 大盤與各項行情看板 (臺指期指數已移至加權指數左邊)
 # ------------------------------------------
 m_col1, m_col2, m_col3, m_col4, m_col5, m_col6, m_col7, m_col8 = st.columns(8)
 
@@ -352,8 +352,20 @@ with m_col2:
     if st.button("📈 看那指", key="btn_idx_nasdaq", use_container_width=True):
         st.session_state["selected_stock_code"] = "^IXIC"
 
-# 3. 加權指數 (大盤)
+# 3. 臺指期指數 (近月期貨 - 放置於加權指數左側)
 with m_col3:
+    st.markdown("""
+    <div class="market-card">
+        <div class="market-title">⚡ 臺指期指數</div>
+        <div class="market-val">23,860.00</div>
+        <div class="badge-up">↑ +168.00 (+0.71%)</div>
+    </div>
+    """, unsafe_allow_html=True)
+    if st.button("📈 看臺指期", key="btn_idx_fut", use_container_width=True):
+        st.session_state["selected_stock_code"] = "TX=F"
+
+# 4. 加權指數 (大盤)
+with m_col4:
     st.markdown("""
     <div class="market-card">
         <div class="market-title">🇹🇼 加權指數</div>
@@ -364,8 +376,8 @@ with m_col3:
     if st.button("📈 看大盤", key="btn_idx_twii", use_container_width=True):
         st.session_state["selected_stock_code"] = "^TWII"
 
-# 4. 櫃買指數 (OTC)
-with m_col4:
+# 5. 櫃買指數 (OTC)
+with m_col5:
     st.markdown("""
     <div class="market-card">
         <div class="market-title">🏢 櫃買指數</div>
@@ -375,18 +387,6 @@ with m_col4:
     """, unsafe_allow_html=True)
     if st.button("📈 看櫃買", key="btn_idx_twoii", use_container_width=True):
         st.session_state["selected_stock_code"] = "^TWOII"
-
-# 5. 臺指期指數 (近月期貨)
-with m_col5:
-    st.markdown("""
-    <div class="market-card">
-        <div class="market-title">⚡ 臺指期指數</div>
-        <div class="market-val">23,860.00</div>
-        <div class="badge-up">↑ +168.00 (+0.71%)</div>
-    </div>
-    """, unsafe_allow_html=True)
-    if st.button("📈 看臺指期", key="btn_idx_fut", use_container_width=True):
-        st.session_state["selected_stock_code"] = "TX=F"
 
 # 6. 選擇權 P/C Ratio
 with m_col6:
