@@ -1083,37 +1083,32 @@ elif not df_result.empty:
     # ------------------------------------------
     # Section 5: Plotly 互動式 K 線與多週期、多指標切換系統
     # ------------------------------------------
-    st.subheader("📈 技術分析與多週期圖表")
-    
-   all_view_options = {}
+   # 📈 技術分析與多週期圖表選單
+    all_view_options = {}
     for idx_item in MARKET_INDICES:
         all_view_options[idx_item["code"]] = f"📊 {idx_item['name']} ({idx_item['code']})"
     
-    # 1. 優先從全域字典（包含資料庫與排行榜動態產生的分身）抓取股名
     global_name_map = st.session_state.get("GLOBAL_STOCK_NAME_MAP", {})
     
-    # 2. 納入篩選結果清單的股名
     if 'df_result' in locals() and not df_result.empty:
         for _, row in df_result.iterrows():
             global_name_map[row["代號"]] = row["股名"]
 
-    # 3. 確保當前被點擊或選中的標的（包含排行榜選中的）都能帶出股名
     current_active_code = st.session_state.get("selected_stock_code", "")
     
-    # 組合所有可能的候選代號（包含大盤、資料庫、排行榜）
-    all_candidate_codes = list(MARKET_INDICES_CODES := [m["code"] for m in MARKET_INDICES])
+    all_candidate_codes = [m["code"] for m in MARKET_INDICES]
     if 'df_result' in locals() and not df_result.empty:
         all_candidate_codes.extend(df_result["代號"].tolist())
     all_candidate_codes.extend(list(global_name_map.keys()))
     if current_active_code and current_active_code not in all_candidate_codes:
         all_candidate_codes.append(current_active_code)
 
-    # 建立最終的下拉選單選項對應
-    for code in dict.fromkeys(all_candidate_codes): # 移除重複
+    for code in dict.fromkeys(all_candidate_codes):
         if code in [m["code"] for m in MARKET_INDICES]:
-            continue # 大盤指數已經在前面處理過
+            continue
         stock_name = global_name_map.get(code, "")
         all_view_options[code] = f"{code} {stock_name}".strip()
+      
         
     code_list = list(all_view_options.keys())
     current_selected = st.session_state.get("selected_stock_code", code_list[0])
