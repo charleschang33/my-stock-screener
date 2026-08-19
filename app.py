@@ -89,12 +89,13 @@ div[data-baseweb="select"] input {
 # 2. 標的與大盤/總經指數資料庫
 # ==========================================
 MARKET_INDICES = [
+    {"code": "^GSPC", "name": "S&P 500 (美股標普)"},
+    {"code": "^IXIC", "name": "Nasdaq (那斯達克)"},
     {"code": "^TWII", "name": "加權指數 (大盤)"},
     {"code": "^TWOII", "name": "櫃買指數 (OTC)"},
+    {"code": "TX=F", "name": "臺指期貨 (指數)"},
     {"code": "TWD=X", "name": "美元/台幣匯率"},
-    {"code": "GC=F", "name": "國際黃金期貨"},
-    {"code": "^GSPC", "name": "S&P 500 (美股標普)"},
-    {"code": "^IXIC", "name": "Nasdaq (那斯達克)"}
+    {"code": "GC=F", "name": "國際黃金期貨"}
 ]
 
 STOCK_DATABASE = [
@@ -323,11 +324,36 @@ if "selected_stock_code" not in st.session_state:
     st.session_state["selected_stock_code"] = "2330.TW"
 
 # ------------------------------------------
-# Section 0: 大盤、櫃買、台幣、黃金、期貨多空、選擇權與美股指數看板
+# Section 0: 大盤與各項行情看板 (第5項已改為臺指期指數)
 # ------------------------------------------
 m_col1, m_col2, m_col3, m_col4, m_col5, m_col6, m_col7, m_col8 = st.columns(8)
 
+# 1. 標普 S&P 500
 with m_col1:
+    st.markdown("""
+    <div class="market-card">
+        <div class="market-title">🇺🇸 S&P 500</div>
+        <div class="market-val">5,620.85</div>
+        <div class="badge-up">↑ +28.40 (+0.51%)</div>
+    </div>
+    """, unsafe_allow_html=True)
+    if st.button("📈 看標普", key="btn_idx_sp500", use_container_width=True):
+        st.session_state["selected_stock_code"] = "^GSPC"
+
+# 2. 那斯達克 Nasdaq
+with m_col2:
+    st.markdown("""
+    <div class="market-card">
+        <div class="market-title">💻 Nasdaq</div>
+        <div class="market-val">17,850.30</div>
+        <div class="badge-up">↑ +112.60 (+0.63%)</div>
+    </div>
+    """, unsafe_allow_html=True)
+    if st.button("📈 看那指", key="btn_idx_nasdaq", use_container_width=True):
+        st.session_state["selected_stock_code"] = "^IXIC"
+
+# 3. 加權指數 (大盤)
+with m_col3:
     st.markdown("""
     <div class="market-card">
         <div class="market-title">🇹🇼 加權指數</div>
@@ -338,7 +364,8 @@ with m_col1:
     if st.button("📈 看大盤", key="btn_idx_twii", use_container_width=True):
         st.session_state["selected_stock_code"] = "^TWII"
 
-with m_col2:
+# 4. 櫃買指數 (OTC)
+with m_col4:
     st.markdown("""
     <div class="market-card">
         <div class="market-title">🏢 櫃買指數</div>
@@ -349,39 +376,19 @@ with m_col2:
     if st.button("📈 看櫃買", key="btn_idx_twoii", use_container_width=True):
         st.session_state["selected_stock_code"] = "^TWOII"
 
-with m_col3:
-    st.markdown("""
-    <div class="market-card">
-        <div class="market-title">💵 美元/台幣</div>
-        <div class="market-val">31.91</div>
-        <div class="badge-up">↑ 升值 (+0.25%)</div>
-    </div>
-    """, unsafe_allow_html=True)
-    if st.button("📈 看台幣", key="btn_idx_twd", use_container_width=True):
-        st.session_state["selected_stock_code"] = "TWD=X"
-
-with m_col4:
-    st.markdown("""
-    <div class="market-card">
-        <div class="market-title">🥇 國際黃金</div>
-        <div class="market-val">4,395.80</div>
-        <div class="badge-up">↑ +18.40 (+0.42%)</div>
-    </div>
-    """, unsafe_allow_html=True)
-    if st.button("📈 看黃金", key="btn_idx_gold", use_container_width=True):
-        st.session_state["selected_stock_code"] = "GC=F"
-
+# 5. 臺指期指數 (近月期貨)
 with m_col5:
     st.markdown("""
     <div class="market-card">
-        <div class="market-title">⚡ 臺指期大戶</div>
-        <div class="market-val">+9,954 口</div>
-        <div class="badge-up">↑ 多4.68萬/空3.68萬</div>
+        <div class="market-title">⚡ 臺指期指數</div>
+        <div class="market-val">23,860.00</div>
+        <div class="badge-up">↑ +168.00 (+0.71%)</div>
     </div>
     """, unsafe_allow_html=True)
-    if st.button("📊 期貨明細", key="btn_idx_fut", use_container_width=True):
-        show_options_detail()
+    if st.button("📈 看臺指期", key="btn_idx_fut", use_container_width=True):
+        st.session_state["selected_stock_code"] = "TX=F"
 
+# 6. 選擇權 P/C Ratio
 with m_col6:
     st.markdown("""
     <div class="market-card">
@@ -393,27 +400,29 @@ with m_col6:
     if st.button("📊 波動率", key="btn_idx_opt", use_container_width=True):
         show_vix_detail()
 
+# 7. 美元/台幣匯率
 with m_col7:
     st.markdown("""
     <div class="market-card">
-        <div class="market-title">🇺🇸 S&P 500</div>
-        <div class="market-val">5,620.85</div>
-        <div class="badge-up">↑ +28.40 (+0.51%)</div>
+        <div class="market-title">💵 美元/台幣</div>
+        <div class="market-val">31.91</div>
+        <div class="badge-up">↑ 升值 (+0.25%)</div>
     </div>
     """, unsafe_allow_html=True)
-    if st.button("📈 看標普", key="btn_idx_sp500", use_container_width=True):
-        st.session_state["selected_stock_code"] = "^GSPC"
+    if st.button("📈 看台幣", key="btn_idx_twd", use_container_width=True):
+        st.session_state["selected_stock_code"] = "TWD=X"
 
+# 8. 國際黃金
 with m_col8:
     st.markdown("""
     <div class="market-card">
-        <div class="market-title">💻 Nasdaq</div>
-        <div class="market-val">17,850.30</div>
-        <div class="badge-up">↑ +112.60 (+0.63%)</div>
+        <div class="market-title">🥇 國際黃金</div>
+        <div class="market-val">4,395.80</div>
+        <div class="badge-up">↑ +18.40 (+0.42%)</div>
     </div>
     """, unsafe_allow_html=True)
-    if st.button("📈 看那指", key="btn_idx_nasdaq", use_container_width=True):
-        st.session_state["selected_stock_code"] = "^IXIC"
+    if st.button("📈 看黃金", key="btn_idx_gold", use_container_width=True):
+        st.session_state["selected_stock_code"] = "GC=F"
 
 st.markdown("<div style='margin-bottom: 8px;'></div>", unsafe_allow_html=True)
 
@@ -456,10 +465,8 @@ sector_data = pd.DataFrame({
     "指標領頭股": ["台積電、聯發科", "廣達、緯穎", "欣興、台達電", "致茂、志聖", "大立光、玉晶光", "長榮、陽明", "富邦金、國泰金", "華城、中興電"]
 })
 
-# 繪製族群量價雙軸圖 (已優化避免字體重疊)
 fig_sector = make_subplots(specs=[[{"secondary_y": True}]])
 
-# 柱狀圖：成交金額 (改為 hover 提示，避免字體重疊)
 fig_sector.add_trace(
     go.Bar(
         x=sector_data["族群名稱"],
@@ -472,7 +479,6 @@ fig_sector.add_trace(
     secondary_y=False
 )
 
-# 折線圖：平均漲跌幅 (加大頂部 Y 軸空間，避免數字被切斷)
 scatter_colors = ['#ef4444' if pct >= 0 else '#22c55e' for pct in sector_data["族群平均漲跌 (%)"]]
 fig_sector.add_trace(
     go.Scatter(
@@ -497,12 +503,10 @@ fig_sector.update_layout(
     plot_bgcolor='rgba(0,0,0,0)'
 )
 fig_sector.update_yaxes(title_text="成交金額 (億元)", secondary_y=False, showgrid=True, gridcolor="#f1f5f9")
-# 加大 Y 軸上限，確保文字不被邊界遮擋
 fig_sector.update_yaxes(title_text="族群漲跌幅 (%)", secondary_y=True, showgrid=False, range=[-1.2, 3.2])
 
 st.plotly_chart(fig_sector, use_container_width=True)
 
-# 族群點擊展開成分股清單
 st.markdown("👇 **點選下方族群名稱，立即展開成分股與量價明細：**")
 selected_sector_tab = st.radio(
     "選擇要檢視成分股的族群：",
@@ -511,7 +515,6 @@ selected_sector_tab = st.radio(
     label_visibility="collapsed"
 )
 
-# 根據選取的族群篩選成分股
 sector_stock_rows = []
 for s_item in STOCK_DATABASE:
     if s_item["industry"] == selected_sector_tab:
@@ -819,7 +822,7 @@ elif not df_result.empty:
     
     with col_stock_sel:
         selected_display = st.selectbox(
-            "目前檢視標的（可切換個股、台幣、黃金或指數）：",
+            "目前檢視標的（可切換個股、臺指期、台幣、黃金或指數）：",
             [all_view_options[c] for c in code_list],
             index=default_idx
         )
