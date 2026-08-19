@@ -41,13 +41,59 @@ div[data-baseweb="select"] span {
 div[data-baseweb="select"] input {
     font-size: 16px !important;
 }
+/* 自訂行情卡片樣式 */
+.market-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 10px 12px;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+}
+.market-title {
+    font-size: 13px;
+    color: #64748b;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+.market-val {
+    font-size: 20px;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 4px;
+}
+.badge-up {
+    display: inline-block;
+    background-color: #fee2e2;
+    color: #dc2626;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 6px;
+}
+.badge-down {
+    display: inline-block;
+    background-color: #dcfce7;
+    color: #16a34a;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 6px;
+}
 </style>
 """, unsafe_allow_html=True)
 
 
 # ==========================================
-# 2. 標的資料庫
+# 2. 標的與大盤指數資料庫
 # ==========================================
+MARKET_INDICES = [
+    {"code": "^TWII", "name": "加權指數 (大盤)"},
+    {"code": "^TWOII", "name": "櫃買指數 (OTC)"},
+    {"code": "^GSPC", "name": "S&P 500 (美股標普)"},
+    {"code": "^IXIC", "name": "Nasdaq (那斯達克)"}
+]
+
 STOCK_DATABASE = [
     {"code": "2330.TW", "name": "台積電", "industry": "半導體", "theme": "AI、晶圓代工、先進封裝"},
     {"code": "2317.TW", "name": "鴻海", "industry": "電腦週邊", "theme": "AI伺服器、電動車"},
@@ -270,28 +316,80 @@ def show_fear_greed_detail():
 # ==========================================
 st.markdown("<div class='main-header'>🧠 AI 投資資訊站 | 專屬量化選股儀表板</div>", unsafe_allow_html=True)
 
+# 記錄選中的股票代號
+if "selected_stock_code" not in st.session_state:
+    st.session_state["selected_stock_code"] = "2330.TW"
+
 # ------------------------------------------
-# Section 0: 大盤、櫃買、期貨多空、選擇權與美股指數看板
+# Section 0: 大盤、櫃買、期貨多空、選擇權與美股指數看板 (支援紅漲綠跌與點擊連動K線)
 # ------------------------------------------
 m_col1, m_col2, m_col3, m_col4, m_col5, m_col6 = st.columns(6)
 
 with m_col1:
-    st.metric(label="🇹🇼 加權指數 (大盤)", value="23,825.40", delta="+145.20 (+0.61%)")
+    st.markdown("""
+    <div class="market-card">
+        <div class="market-title">🇹🇼 加權指數 (大盤)</div>
+        <div class="market-val">23,825.40</div>
+        <div class="badge-up">↑ +145.20 (+0.61%)</div>
+    </div>
+    """, unsafe_allow_html=True)
+    if st.button("📈 看大盤 K 線", key="btn_idx_twii", use_container_width=True):
+        st.session_state["selected_stock_code"] = "^TWII"
 
 with m_col2:
-    st.metric(label="🏢 櫃買指數 (OTC)", value="268.35", delta="+1.85 (+0.69%)")
+    st.markdown("""
+    <div class="market-card">
+        <div class="market-title">🏢 櫃買指數 (OTC)</div>
+        <div class="market-val">268.35</div>
+        <div class="badge-up">↑ +1.85 (+0.69%)</div>
+    </div>
+    """, unsafe_allow_html=True)
+    if st.button("📈 看櫃買 K 線", key="btn_idx_twoii", use_container_width=True):
+        st.session_state["selected_stock_code"] = "^TWOII"
 
 with m_col3:
-    st.metric(label="⚡ 臺指期貨大戶部位", value="+9,954 口", delta="多單 4.68萬 / 空單 3.68萬", delta_color="normal")
+    st.markdown("""
+    <div class="market-card">
+        <div class="market-title">⚡ 臺指期大戶淨額</div>
+        <div class="market-val">+9,954 口</div>
+        <div class="badge-up">↑ 多4.68萬 / 空3.68萬</div>
+    </div>
+    """, unsafe_allow_html=True)
+    if st.button("📊 大戶期權明細", key="btn_idx_fut", use_container_width=True):
+        show_options_detail()
 
 with m_col4:
-    st.metric(label="🎯 選擇權 P/C Ratio", value="118.5%", delta="偏多支撐力道強", delta_color="normal")
+    st.markdown("""
+    <div class="market-card">
+        <div class="market-title">🎯 選擇權 P/C Ratio</div>
+        <div class="market-val">118.5%</div>
+        <div class="badge-up">↑ 偏多支撐強勁</div>
+    </div>
+    """, unsafe_allow_html=True)
+    if st.button("📊 波動率明細", key="btn_idx_opt", use_container_width=True):
+        show_vix_detail()
 
 with m_col5:
-    st.metric(label="🇺🇸 S&P 500 (美股標普)", value="5,620.85", delta="+28.40 (+0.51%)")
+    st.markdown("""
+    <div class="market-card">
+        <div class="market-title">🇺🇸 S&P 500 (標普)</div>
+        <div class="market-val">5,620.85</div>
+        <div class="badge-up">↑ +28.40 (+0.51%)</div>
+    </div>
+    """, unsafe_allow_html=True)
+    if st.button("📈 看標普 K 線", key="btn_idx_sp500", use_container_width=True):
+        st.session_state["selected_stock_code"] = "^GSPC"
 
 with m_col6:
-    st.metric(label="💻 Nasdaq (美股那指)", value="17,850.30", delta="+112.60 (+0.63%)")
+    st.markdown("""
+    <div class="market-card">
+        <div class="market-title">💻 Nasdaq (那指)</div>
+        <div class="market-val">17,850.30</div>
+        <div class="badge-up">↑ +112.60 (+0.63%)</div>
+    </div>
+    """, unsafe_allow_html=True)
+    if st.button("📈 看那指 K 線", key="btn_idx_nasdaq", use_container_width=True):
+        st.session_state["selected_stock_code"] = "^IXIC"
 
 st.markdown("<div style='margin-bottom: 8px;'></div>", unsafe_allow_html=True)
 
@@ -552,9 +650,6 @@ with col_export:
             type="primary"
         )
 
-if "selected_stock_code" not in st.session_state:
-    st.session_state["selected_stock_code"] = "2330.TW" if "台股" in market_choice else "NVDA"
-
 if df_result.empty and len(raw_stock_data) > 0:
     st.info(f"💡 在【{selected_timeframe}】與當前設定下未找到符合個股，可勾選放寬部分條件或切換頁籤。")
 elif not df_result.empty:
@@ -591,26 +686,35 @@ elif not df_result.empty:
     st.divider()
 
     # ------------------------------------------
-    # Section 5: Plotly 互動式 K 線與多週期切換系統
+    # Section 5: Plotly 互動式 K 線與多週期切換系統 (已整合大盤與個股)
     # ------------------------------------------
-    st.subheader("📈 個股技術分析與指標圖表")
+    st.subheader("📈 技術分析與多週期圖表")
     
-    code_to_name = {row["代號"]: row["股名"] for _, row in df_result.iterrows()}
-    display_options = [f"{c} {code_to_name.get(c, '')}" for c in df_result["代號"].tolist()]
-    code_list = df_result["代號"].tolist()
-    
+    # 建立合併選單（包含大盤指數與個股清單）
+    all_view_options = {}
+    for idx_item in MARKET_INDICES:
+        all_view_options[idx_item["code"]] = f"📊 {idx_item['code']} {idx_item['name']}"
+    for _, row in df_result.iterrows():
+        all_view_options[row["code"]] = f"{row['code']} {row['name']}"
+        
+    code_list = list(all_view_options.keys())
     current_selected = st.session_state.get("selected_stock_code", code_list[0])
-    default_idx = code_list.index(current_selected) if current_selected in code_list else 0
+    
+    if current_selected not in code_list:
+        code_list.insert(0, current_selected)
+        all_view_options[current_selected] = f"📊 {current_selected}"
+        
+    default_idx = code_list.index(current_selected)
     
     col_stock_sel, col_tf_sel = st.columns([1, 2])
     
     with col_stock_sel:
         selected_display = st.selectbox(
-            "目前檢視個股：",
-            display_options,
+            "目前檢視標的（可切換個股或指數）：",
+            [all_view_options[c] for c in code_list],
             index=default_idx
         )
-        selected_code = selected_display.split(" ")[0]
+        selected_code = list(all_view_options.keys())[[all_view_options[c] for c in code_list].index(selected_display)]
         st.session_state["selected_stock_code"] = selected_code
 
     chart_tf_map = {
@@ -785,4 +889,4 @@ elif not df_result.empty:
             
             st.plotly_chart(fig_k, use_container_width=True)
         else:
-            st.warning("⚠️ 該週期歷史數據筆數不足，請嘗試切換至其他週期檢視。")
+            st.warning("⚠️ 該標的在當前週期下暫無足夠歷史數據。")
