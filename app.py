@@ -220,9 +220,9 @@ enable_three_bar_breakout = st.sidebar.checkbox("🔥 三盤突破", value=False
 enable_three_bar_breakdown = st.sidebar.checkbox("❄️ 三盤跌破", value=False)
 
 st.sidebar.subheader("2. 均線排列條件")
-# 已修改為 MA8 > MA21 > MA55
 enable_ma_trend = st.sidebar.checkbox("均線多頭 (MA8 > MA21 > MA55)", value=False)
-enable_vma_trend = st.sidebar.checkbox("成交量均線 VMA5 > VMA13 > VMA34", value=False)
+# 加上括號維持格式整齊
+enable_vma_trend = st.sidebar.checkbox("成交量均線 (VMA5 > VMA13 > VMA34)", value=False)
 
 st.sidebar.subheader("3. 價量突破與創高")
 enable_vol_breakout = st.sidebar.checkbox("成交量 > 5日均量 N 倍", value=False)
@@ -347,13 +347,14 @@ for item in current_db:
     if is_ma_aligned:
         tags.append("均線多頭")
             
-    # 條件 2-2: 量均線多頭
+    # 條件 2-2: 量均線多頭 (VMA5 > VMA13 > VMA34)
+    is_vma_aligned = (curr['VMA5'] > curr['VMA13'] > curr['VMA34'])
     pass_vma = True
     if enable_vma_trend:
-        if (curr['VMA5'] > curr['VMA13'] > curr['VMA34']):
-            tags.append("量均多頭")
-        else:
+        if not is_vma_aligned:
             pass_vma = False
+    if is_vma_aligned:
+        tags.append("量均多頭")
 
     # 條件 3: 帶量突破
     pass_vol = True
