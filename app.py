@@ -1079,8 +1079,15 @@ elif not df_result.empty:
     all_view_options = {}
     for idx_item in MARKET_INDICES:
         all_view_options[idx_item["code"]] = f"📊 {idx_item['name']} ({idx_item['code']})"
+    
+    # 同時納入完整資料庫 STOCK_DATABASE 以確保所有股名皆可完整顯示
+    full_db_lookup = {item["code"]: item["name"] for item in current_db}
+    
     for _, row in df_result.iterrows():
-        all_view_options[row["代號"]] = f"{row['代號']} {row['股名']}"
+        code = row["代號"]
+        # 優先從 row 取得股名，若無則從 STOCK_DATABASE 尋找，最後才預設為空字串
+        name = row.get("股名", full_db_lookup.get(code, ""))
+        all_view_options[code] = f"{code} {name}"
         
     code_list = list(all_view_options.keys())
     current_selected = st.session_state.get("selected_stock_code", code_list[0])
