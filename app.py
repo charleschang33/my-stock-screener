@@ -106,30 +106,40 @@ MARKET_INDICES = [
 ]
 
 STOCK_DATABASE = [
-    {"code": "2330.TW", "name": "台積電", "industry": "半導體", "theme": "AI、晶圓代工、先進封裝", "market_cap_bil": 15000.0, "rev_yoy": 33.8, "psr": 8.5, "csr": 0.45, "clg": 28.5},
-    {"code": "2317.TW", "name": "鴻海", "industry": "電腦週邊", "theme": "AI伺服器、電動車", "market_cap_bil": 2400.0, "rev_yoy": 26.2, "psr": 0.58, "csr": 0.62, "clg": 35.0},
-    {"code": "2454.TW", "name": "聯發科", "industry": "半導體", "theme": "手機晶片、AI芯片", "market_cap_bil": 2100.0, "rev_yoy": 23.5, "psr": 3.8, "csr": 0.28, "clg": 15.2},
-    {"code": "2382.TW", "name": "廣達", "industry": "電腦週邊", "theme": "AI伺服器、雲端運算", "market_cap_bil": 1200.0, "rev_yoy": 38.5, "psr": 0.95, "csr": 0.78, "clg": 48.0},
-    {"code": "2308.TW", "name": "台達電", "industry": "電子零組件", "theme": "電源供應、充電樁", "market_cap_bil": 1100.0, "rev_yoy": 12.8, "psr": 2.6, "csr": 0.35, "clg": 18.0},
-    {"code": "3711.TW", "name": "日月光投控", "industry": "半導體", "theme": "封測、CoWoS", "market_cap_bil": 680.0, "rev_yoy": 15.2, "psr": 1.25, "csr": 0.52, "clg": 22.4},
-    {"code": "2603.TW", "name": "長榮", "industry": "航運海運", "theme": "貨櫃航運、高股息", "market_cap_bil": 450.0, "rev_yoy": 42.0, "psr": 1.10, "csr": 0.85, "clg": 31.0},
-    {"code": "3231.TW", "name": "緯創", "industry": "電腦週邊", "theme": "AI伺服器、代工", "market_cap_bil": 380.0, "rev_yoy": 29.4, "psr": 0.42, "csr": 0.68, "clg": 42.5},
-    {"code": "6669.TW", "name": "緯穎", "industry": "電腦週邊", "theme": "AI伺服器、液冷散熱", "market_cap_bil": 420.0, "rev_yoy": 48.0, "psr": 1.42, "csr": 0.92, "clg": 65.0},
-    {"code": "2379.TW", "name": "瑞昱", "industry": "半導體", "theme": "網通晶片、車用電子", "market_cap_bil": 280.0, "rev_yoy": 18.6, "psr": 2.4, "csr": 0.32, "clg": 12.0},
-    {"code": "3008.TW", "name": "大立光", "industry": "光電/鏡頭", "theme": "潛望鏡頭、蘋果供應鏈", "market_cap_bil": 340.0, "rev_yoy": 16.5, "psr": 5.2, "csr": 0.18, "clg": 8.5},
-    {"code": "3037.TW", "name": "欣興", "industry": "電子零組件", "theme": "ABF載板、PCB", "market_cap_bil": 250.0, "rev_yoy": 21.5, "psr": 1.38, "csr": 0.55, "clg": 26.0},
-    {"code": "2476.TW", "name": "鉅祥", "industry": "電子零組件", "theme": "沖壓件、車用元件", "market_cap_bil": 35.0, "rev_yoy": 25.8, "psr": 1.48, "csr": 0.58, "clg": 24.5},
-    {"code": "2467.TW", "name": "志聖", "industry": "半導體設備", "theme": "CoWoS設備、PCB設備", "market_cap_bil": 42.0, "rev_yoy": 35.2, "psr": 4.5, "csr": 0.88, "clg": 52.0},
-    {"code": "3605.TW", "name": "致茂", "industry": "其他電子", "theme": "量測儀器、半導體測試", "market_cap_bil": 160.0, "rev_yoy": 28.0, "psr": 3.6, "csr": 0.72, "clg": 38.0}
+    {"code": "2330.TW", "name": "台積電", "industry": "半導體", "theme": "AI、晶圓代工、先進封裝"},
+    {"code": "2317.TW", "name": "鴻海", "industry": "電腦週邊", "theme": "AI伺服器、電動車"},
+    {"code": "2454.TW", "name": "聯發科", "industry": "半導體", "theme": "手機晶片、AI芯片"},
+    {"code": "2382.TW", "name": "廣達", "industry": "電腦週邊", "theme": "AI伺服器、雲端運算"},
+    {"code": "2308.TW", "name": "台達電", "industry": "電子零組件", "theme": "電源供應、充電樁"},
+    {"code": "3711.TW", "name": "日月光投控", "industry": "半導體", "theme": "封測、CoWoS"},
+    {"code": "2603.TW", "name": "長榮", "industry": "航運海運", "theme": "貨櫃航運、高股息"},
+    {"code": "3231.TW", "name": "緯創", "industry": "電腦週邊", "theme": "AI伺服器、代工"},
+    {"code": "6669.TW", "name": "緯穎", "industry": "電腦週邊", "theme": "AI伺服器、液冷散熱"},
+    {"code": "2379.TW", "name": "瑞昱", "industry": "半導體", "theme": "網通晶片、車用電子"},
+    {"code": "3008.TW", "name": "大立光", "industry": "光電/鏡頭", "theme": "潛望鏡頭、蘋果供應鏈"},
+    {"code": "3037.TW", "name": "欣興", "industry": "電子零組件", "theme": "ABF載板、PCB"},
+    {"code": "2476.TW", "name": "鉅祥", "industry": "電子零組件", "theme": "沖壓件、車用元件"},
+    {"code": "2467.TW", "name": "志聖", "industry": "其他電子", "theme": "CoWoS設備、PCB設備"},
+    {"code": "3605.TW", "name": "致茂", "industry": "其他電子", "theme": "量測儀器、半導體測試"},
+    {"code": "1503.TW", "name": "士電", "industry": "電機機械", "theme": "重電、變壓器"},
+    {"code": "1513.TW", "name": "中興電", "industry": "電機機械", "theme": "重電、GIS開關"},
+    {"code": "1519.TW", "name": "華城", "industry": "電機機械", "theme": "外銷變壓器、綠能"},
+    {"code": "2609.TW", "name": "陽明", "industry": "航運海運", "theme": "貨櫃航運"},
+    {"code": "2615.TW", "name": "萬海", "industry": "航運海運", "theme": "貨櫃航運"},
+    {"code": "3017.TW", "name": "奇鋐", "industry": "電腦週邊", "theme": "液冷散熱、AI伺服器"},
+    {"code": "8210.TW", "name": "勤誠", "industry": "電腦週邊", "theme": "伺服器機殼"},
+    {"code": "3653.TW", "name": "健策", "industry": "電子零組件", "theme": "均熱片、水冷散熱"},
+    {"code": "6442.TW", "name": "光聖", "industry": "通信網路", "theme": "光通訊、CPO"},
+    {"code": "3163.TW", "name": "波若威", "industry": "通信網路", "theme": "高速光通訊"}
 ]
 
 US_STOCK_DATABASE = [
-    {"code": "NVDA", "name": "NVIDIA", "industry": "半導體", "theme": "AI GPU、資料中心", "market_cap_bil": 3000.0, "rev_yoy": 122.0, "psr": 25.0, "csr": 1.20, "clg": 85.0},
-    {"code": "AAPL", "name": "Apple", "industry": "消費電子", "theme": "iPhone、Apple Intelligence", "market_cap_bil": 3300.0, "rev_yoy": 8.5, "psr": 8.2, "csr": 0.40, "clg": 10.5},
-    {"code": "MSFT", "name": "Microsoft", "industry": "軟體雲端", "theme": "Azure、Copilot", "market_cap_bil": 3100.0, "rev_yoy": 16.0, "psr": 12.0, "csr": 0.95, "clg": 24.0},
-    {"code": "TSLA", "name": "Tesla", "industry": "汽車", "theme": "電動車、FSD、人形機器人", "market_cap_bil": 800.0, "rev_yoy": 14.2, "psr": 6.8, "csr": 0.30, "clg": 18.0},
-    {"code": "AMD", "name": "AMD", "industry": "半導體", "theme": "AI Accelerator、CPU", "market_cap_bil": 250.0, "rev_yoy": 24.0, "psr": 9.5, "csr": 0.35, "clg": 22.0},
-    {"code": "AVGO", "name": "Broadcom", "industry": "半導體", "theme": "ASIC、網通晶片", "market_cap_bil": 850.0, "rev_yoy": 45.0, "psr": 14.5, "csr": 0.82, "clg": 40.0}
+    {"code": "NVDA", "name": "NVIDIA", "industry": "半導體", "theme": "AI GPU、資料中心"},
+    {"code": "AAPL", "name": "Apple", "industry": "消費電子", "theme": "iPhone、Apple Intelligence"},
+    {"code": "MSFT", "name": "Microsoft", "industry": "軟體雲端", "theme": "Azure、Copilot"},
+    {"code": "TSLA", "name": "Tesla", "industry": "汽車", "theme": "電動車、FSD、人形機器人"},
+    {"code": "AMD", "name": "AMD", "industry": "半導體", "theme": "AI Accelerator、CPU"},
+    {"code": "AVGO", "name": "Broadcom", "industry": "半導體", "theme": "ASIC、網通晶片"}
 ]
 
 
@@ -472,6 +482,57 @@ with col3:
     ], label_color="#ef4444"), use_container_width=True)
     if st.button("🧭 點擊查看【恐懼貪婪】7大因子", key="btn_fg", use_container_width=True):
         show_fear_greed_detail()
+
+# ------------------------------------------
+# Section 1.2: 📈 市場漲跌幅排行榜 Top 100 模組
+# ------------------------------------------
+st.markdown("#### 📈 市場漲跌幅排行榜 (Top 100)")
+rank_tab_left, rank_tab_right = st.columns([1, 4])
+with rank_tab_left:
+    rank_type = st.radio("排行榜類型：", ["🔥 漲幅最高", "❄️ 跌幅最重"], horizontal=True)
+
+# 模擬/產生全市場漲跌幅排行榜數據
+np.random.seed(42)
+rank_tickers = [item["code"] for item in STOCK_DATABASE] * 4  # 擴充樣本數
+rank_names = [item["name"] for item in STOCK_DATABASE] * 4
+rank_industries = [item["industry"] for item in STOCK_DATABASE] * 4
+
+dummy_pcts = np.random.uniform(-9.9, 9.9, len(rank_tickers))
+dummy_prices = np.random.uniform(20.0, 950.0, len(rank_tickers))
+dummy_vols = np.random.randint(1000, 85000, len(rank_tickers))
+
+df_ranking = pd.DataFrame({
+    "代號": rank_tickers,
+    "股名": rank_names,
+    "最新股價": [round(p, 2) for p in dummy_prices],
+    "漲跌幅 (%)": [round(pct, 2) for pct in dummy_pcts],
+    "成交量 (張)": dummy_vols,
+    "產業標籤": rank_industries
+}).drop_duplicates(subset=["代號"]).reset_index(drop=True)
+
+if "🔥 漲幅最高" in rank_type:
+    df_ranking = df_ranking.sort_values(by="漲跌幅 (%)", ascending=False).head(100)
+else:
+    df_ranking = df_ranking.sort_values(by="漲跌幅 (%)", ascending=True).head(100)
+
+rank_event = st.dataframe(
+    df_ranking.style.format({
+        "最新股價": "{:.2f}",
+        "漲跌幅 (%)": "{:+.2f}%",
+        "成交量 (張)": "{:,}"
+    }),
+    use_container_width=True,
+    hide_index=True,
+    on_select="rerun",
+    selection_mode="single-row",
+    height=260
+)
+
+if rank_event and rank_event.selection and rank_event.selection.rows:
+    selected_rank_idx = rank_event.selection.rows[0]
+    st.session_state["selected_stock_code"] = df_ranking.iloc[selected_rank_idx]["代號"]
+
+st.divider()
 
 # ------------------------------------------
 # Section 1.5: 族群成交量價比較 與 個股漲跌分佈
