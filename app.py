@@ -933,7 +933,7 @@ elif not df_result.empty:
     st.divider()
 
     # ------------------------------------------
-    # Section 5: Plotly 互動式 K 線與多週期、多指標切換系統
+    # Section 5: Plotly 互動式 K 線與多週期、多指標切換系統 (支援 Hover 即時動態箭頭)
     # ------------------------------------------
     st.subheader("📈 技術分析與多週期圖表")
     
@@ -1044,10 +1044,10 @@ elif not df_result.empty:
             df_k['Minus_DI'] = m_di
             df_k['ADX'] = adx
             
+            # 最新交易日斜率箭頭
             curr_row = df_k.iloc[-1]
             prev_row = df_k.iloc[-2] if len(df_k) >= 2 else curr_row
             
-            # 最新斜率與紅綠箭頭判定
             arrow_ma8 = "<span style='color:#ef4444;'>↑</span>" if curr_row['MA8'] >= prev_row['MA8'] else "<span style='color:#22c55e;'>↓</span>"
             arrow_ma21 = "<span style='color:#ef4444;'>↑</span>" if curr_row['MA21'] >= prev_row['MA21'] else "<span style='color:#22c55e;'>↓</span>"
             arrow_ma55 = "<span style='color:#ef4444;'>↑</span>" if curr_row['MA55'] >= prev_row['MA55'] else "<span style='color:#22c55e;'>↓</span>"
@@ -1070,8 +1070,32 @@ elif not df_result.empty:
             arrow_macd = "<span style='color:#ef4444;'>↑</span>" if curr_row['MACD'] >= prev_row['MACD'] else "<span style='color:#22c55e;'>↓</span>"
             arrow_osc = "<span style='color:#ef4444;'>↑</span>" if curr_row['OSC'] >= prev_row['OSC'] else "<span style='color:#22c55e;'>↓</span>"
             
+            # 取最近 100 根 K 棒繪製
             plot_df = df_k.iloc[-100:].copy()
             
+            # 為各線條計算【每日動態升降箭頭】以供 Hover 顯示
+            plot_df['MA8_arr'] = ["↑" if diff >= 0 else "↓" for diff in plot_df['MA8'].diff().fillna(0)]
+            plot_df['MA21_arr'] = ["↑" if diff >= 0 else "↓" for diff in plot_df['MA21'].diff().fillna(0)]
+            plot_df['MA55_arr'] = ["↑" if diff >= 0 else "↓" for diff in plot_df['MA55'].diff().fillna(0)]
+
+            plot_df['VMA5_arr'] = ["↑" if diff >= 0 else "↓" for diff in plot_df['VMA5'].diff().fillna(0)]
+            plot_df['VMA13_arr'] = ["↑" if diff >= 0 else "↓" for diff in plot_df['VMA13'].diff().fillna(0)]
+            plot_df['VMA34_arr'] = ["↑" if diff >= 0 else "↓" for diff in plot_df['VMA34'].diff().fillna(0)]
+
+            plot_df['PDI_arr'] = ["↑" if diff >= 0 else "↓" for diff in plot_df['Plus_DI'].diff().fillna(0)]
+            plot_df['MDI_arr'] = ["↑" if diff >= 0 else "↓" for diff in plot_df['Minus_DI'].diff().fillna(0)]
+            plot_df['ADX_arr'] = ["↑" if diff >= 0 else "↓" for diff in plot_df['ADX'].diff().fillna(0)]
+
+            plot_df['K_arr'] = ["↑" if diff >= 0 else "↓" for diff in plot_df['K'].diff().fillna(0)]
+            plot_df['D_arr'] = ["↑" if diff >= 0 else "↓" for diff in plot_df['D'].diff().fillna(0)]
+
+            plot_df['RSI6_arr'] = ["↑" if diff >= 0 else "↓" for diff in plot_df['RSI6'].diff().fillna(0)]
+            plot_df['RSI12_arr'] = ["↑" if diff >= 0 else "↓" for diff in plot_df['RSI12'].diff().fillna(0)]
+
+            plot_df['DIF_arr'] = ["↑" if diff >= 0 else "↓" for diff in plot_df['DIF'].diff().fillna(0)]
+            plot_df['MACD_arr'] = ["↑" if diff >= 0 else "↓" for diff in plot_df['MACD'].diff().fillna(0)]
+            plot_df['OSC_arr'] = ["↑" if diff >= 0 else "↓" for diff in plot_df['OSC'].diff().fillna(0)]
+
             if "DMI" in indicator_choice:
                 ind_sub_title = f"<b>DMI 趨向指標 (+DI {arrow_pdi} / -DI {arrow_mdi} / ADX {arrow_adx})</b>"
             elif "KD" in indicator_choice:
@@ -1104,10 +1128,21 @@ elif not df_result.empty:
                 row=1, col=1
             )
             
-            # 主圖線條名稱回歸純淨，Hover 視窗即時顯示當日數值
-            fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['MA8'], mode='lines', name='MA8', line=dict(color='#3b82f6', width=1.3)), row=1, col=1)
-            fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['MA21'], mode='lines', name='MA21', line=dict(color='#ec4899', width=1.5)), row=1, col=1)
-            fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['MA55'], mode='lines', name='MA55', line=dict(color='#8b5cf6', width=1.8)), row=1, col=1)
+            # 主圖 MA 均線（Hover 時動態帶出當日升降箭頭）
+            fig_k.add_trace(go.Scatter(
+                x=plot_df.index, y=plot_df['MA8'], mode='lines', name=f'MA8 {arrow_ma8}', line=dict(color='#3b82f6', width=1.3),
+                hovertemplate="MA8: %{y:.2f} %{customdata}<extra></extra>", customdata=plot_df['MA8_arr']
+            ), row=1, col=1)
+            
+            fig_k.add_trace(go.Scatter(
+                x=plot_df.index, y=plot_df['MA21'], mode='lines', name=f'MA21 {arrow_ma21}', line=dict(color='#ec4899', width=1.5),
+                hovertemplate="MA21: %{y:.2f} %{customdata}<extra></extra>", customdata=plot_df['MA21_arr']
+            ), row=1, col=1)
+            
+            fig_k.add_trace(go.Scatter(
+                x=plot_df.index, y=plot_df['MA55'], mode='lines', name=f'MA55 {arrow_ma55}', line=dict(color='#8b5cf6', width=1.8),
+                hovertemplate="MA55: %{y:.2f} %{customdata}<extra></extra>", customdata=plot_df['MA55_arr']
+            ), row=1, col=1)
             
             total_len = len(df_k)
             kd_annotations = [
@@ -1139,49 +1174,87 @@ elif not df_result.empty:
                             row=1, col=1
                         )
             
-            # 2. 副圖：成交量
+            # 2. 副圖：成交量與 VMA
             v_colors = ['#ef4444' if c >= o else '#22c55e' for c, o in zip(plot_df['Close'], plot_df['Open'])]
             fig_k.add_trace(
                 go.Bar(x=plot_df.index, y=plot_df['Volume'], name="成交量", marker_color=v_colors, showlegend=False),
                 row=2, col=1
             )
-            fig_k.add_trace(
-                go.Scatter(x=plot_df.index, y=plot_df['VMA5'], mode='lines', name='VMA5', line=dict(color='#f97316', width=1.3)),
-                row=2, col=1
-            )
-            fig_k.add_trace(
-                go.Scatter(x=plot_df.index, y=plot_df['VMA13'], mode='lines', name='VMA13', line=dict(color='#06b6d4', width=1.3)),
-                row=2, col=1
-            )
-            fig_k.add_trace(
-                go.Scatter(x=plot_df.index, y=plot_df['VMA34'], mode='lines', name='VMA34', line=dict(color='#10b981', width=1.3)),
-                row=2, col=1
-            )
+            fig_k.add_trace(go.Scatter(
+                x=plot_df.index, y=plot_df['VMA5'], mode='lines', name=f'VMA5 {arrow_vma5}', line=dict(color='#f97316', width=1.3),
+                hovertemplate="VMA5: %{y:,.0f} %{customdata}<extra></extra>", customdata=plot_df['VMA5_arr']
+            ), row=2, col=1)
             
-            # 3. 第 3 層副圖（Hover 時顯示純淨指標名與當日數值）
+            fig_k.add_trace(go.Scatter(
+                x=plot_df.index, y=plot_df['VMA13'], mode='lines', name=f'VMA13 {arrow_vma13}', line=dict(color='#06b6d4', width=1.3),
+                hovertemplate="VMA13: %{y:,.0f} %{customdata}<extra></extra>", customdata=plot_df['VMA13_arr']
+            ), row=2, col=1)
+            
+            fig_k.add_trace(go.Scatter(
+                x=plot_df.index, y=plot_df['VMA34'], mode='lines', name=f'VMA34 {arrow_vma34}', line=dict(color='#10b981', width=1.3),
+                hovertemplate="VMA34: %{y:,.0f} %{customdata}<extra></extra>", customdata=plot_df['VMA34_arr']
+            ), row=2, col=1)
+            
+            # 3. 第 3 層副圖
             if "DMI" in indicator_choice:
-                fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['Plus_DI'], mode='lines', name='+DI', line=dict(color='#ef4444', width=1.5)), row=3, col=1)
-                fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['Minus_DI'], mode='lines', name='-DI', line=dict(color='#22c55e', width=1.5)), row=3, col=1)
-                fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['ADX'], mode='lines', name='ADX', line=dict(color='#f59e0b', width=1.5)), row=3, col=1)
+                fig_k.add_trace(go.Scatter(
+                    x=plot_df.index, y=plot_df['Plus_DI'], mode='lines', name=f'+DI {arrow_pdi}', line=dict(color='#ef4444', width=1.5),
+                    hovertemplate="+DI: %{y:.2f} %{customdata}<extra></extra>", customdata=plot_df['PDI_arr']
+                ), row=3, col=1)
+                
+                fig_k.add_trace(go.Scatter(
+                    x=plot_df.index, y=plot_df['Minus_DI'], mode='lines', name=f'-DI {arrow_mdi}', line=dict(color='#22c55e', width=1.5),
+                    hovertemplate="-DI: %{y:.2f} %{customdata}<extra></extra>", customdata=plot_df['MDI_arr']
+                ), row=3, col=1)
+                
+                fig_k.add_trace(go.Scatter(
+                    x=plot_df.index, y=plot_df['ADX'], mode='lines', name=f'ADX {arrow_adx}', line=dict(color='#f59e0b', width=1.5),
+                    hovertemplate="ADX: %{y:.2f} %{customdata}<extra></extra>", customdata=plot_df['ADX_arr']
+                ), row=3, col=1)
                 fig_k.add_hline(y=25, line_dash="dot", line_color="#94a3b8", line_width=1, row=3, col=1)
 
             elif "KD" in indicator_choice:
-                fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['K'], mode='lines', name='K值', line=dict(color='#f59e0b', width=1.5)), row=3, col=1)
-                fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['D'], mode='lines', name='D值', line=dict(color='#3b82f6', width=1.5)), row=3, col=1)
+                fig_k.add_trace(go.Scatter(
+                    x=plot_df.index, y=plot_df['K'], mode='lines', name=f'K值 {arrow_k}', line=dict(color='#f59e0b', width=1.5),
+                    hovertemplate="K值: %{y:.2f} %{customdata}<extra></extra>", customdata=plot_df['K_arr']
+                ), row=3, col=1)
+                
+                fig_k.add_trace(go.Scatter(
+                    x=plot_df.index, y=plot_df['D'], mode='lines', name=f'D值 {arrow_d}', line=dict(color='#3b82f6', width=1.5),
+                    hovertemplate="D值: %{y:.2f} %{customdata}<extra></extra>", customdata=plot_df['D_arr']
+                ), row=3, col=1)
                 fig_k.add_hline(y=80, line_dash="dot", line_color="#ef4444", line_width=1, row=3, col=1)
                 fig_k.add_hline(y=20, line_dash="dot", line_color="#22c55e", line_width=1, row=3, col=1)
 
             elif "RSI" in indicator_choice:
-                fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['RSI6'], mode='lines', name='RSI 6日', line=dict(color='#ec4899', width=1.5)), row=3, col=1)
-                fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['RSI12'], mode='lines', name='RSI 12日', line=dict(color='#64748b', width=1.3)), row=3, col=1)
+                fig_k.add_trace(go.Scatter(
+                    x=plot_df.index, y=plot_df['RSI6'], mode='lines', name=f'RSI 6日 {arrow_rsi6}', line=dict(color='#ec4899', width=1.5),
+                    hovertemplate="RSI 6日: %{y:.2f} %{customdata}<extra></extra>", customdata=plot_df['RSI6_arr']
+                ), row=3, col=1)
+                
+                fig_k.add_trace(go.Scatter(
+                    x=plot_df.index, y=plot_df['RSI12'], mode='lines', name=f'RSI 12日 {arrow_rsi12}', line=dict(color='#64748b', width=1.3),
+                    hovertemplate="RSI 12日: %{y:.2f} %{customdata}<extra></extra>", customdata=plot_df['RSI12_arr']
+                ), row=3, col=1)
                 fig_k.add_hline(y=70, line_dash="dot", line_color="#ef4444", line_width=1, row=3, col=1)
                 fig_k.add_hline(y=30, line_dash="dot", line_color="#22c55e", line_width=1, row=3, col=1)
 
             elif "MACD" in indicator_choice:
                 osc_colors = ['#ef4444' if o >= 0 else '#22c55e' for o in plot_df['OSC']]
-                fig_k.add_trace(go.Bar(x=plot_df.index, y=plot_df['OSC'], name='OSC柱', marker_color=osc_colors), row=3, col=1)
-                fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['DIF'], mode='lines', name='DIF', line=dict(color='#f59e0b', width=1.5)), row=3, col=1)
-                fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['MACD'], mode='lines', name='MACD', line=dict(color='#3b82f6', width=1.5)), row=3, col=1)
+                fig_k.add_trace(go.Bar(
+                    x=plot_df.index, y=plot_df['OSC'], name=f'OSC柱 {arrow_osc}', marker_color=osc_colors,
+                    hovertemplate="OSC: %{y:.2f} %{customdata}<extra></extra>", customdata=plot_df['OSC_arr']
+                ), row=3, col=1)
+                
+                fig_k.add_trace(go.Scatter(
+                    x=plot_df.index, y=plot_df['DIF'], mode='lines', name=f'DIF {arrow_dif}', line=dict(color='#f59e0b', width=1.5),
+                    hovertemplate="DIF: %{y:.2f} %{customdata}<extra></extra>", customdata=plot_df['DIF_arr']
+                ), row=3, col=1)
+                
+                fig_k.add_trace(go.Scatter(
+                    x=plot_df.index, y=plot_df['MACD'], mode='lines', name=f'MACD {arrow_macd}', line=dict(color='#3b82f6', width=1.5),
+                    hovertemplate="MACD: %{y:.2f} %{customdata}<extra></extra>", customdata=plot_df['MACD_arr']
+                ), row=3, col=1)
                 fig_k.add_hline(y=0, line_dash="solid", line_color="#cbd5e1", line_width=1, row=3, col=1)
             
             fig_k.update_layout(
