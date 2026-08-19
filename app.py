@@ -157,33 +157,117 @@ def create_visual_gauge(title, val, min_val, max_val, prefix="", suffix="", stat
             'steps': steps_config
         }
     ))
-    fig.update_layout(height=220, margin=dict(l=25, r=25, t=40, b=10), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+    fig.update_layout(height=200, margin=dict(l=25, r=25, t=35, b=5), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
     return fig
 
 
 # ==========================================
-# 5. 主畫面 UI 與 篩選邏輯
+# 5. 儀表盤點擊彈出明細視窗 (Dialog Modals)
+# ==========================================
+@st.dialog("📊 大戶期權多空比 - 計算數據明細")
+def show_options_detail():
+    st.markdown("### 🧮 計算公式與核心指標")
+    st.caption("數據來源：期交所三大法人未平倉量 (OI) 與大額交易人部位統計")
+    
+    col_a, col_b, col_c = st.columns(3)
+    col_a.metric("大戶多單留倉", "46,820 口", "+3,150 口")
+    col_b.metric("大戶空單留倉", "36,866 口", "-1,240 口")
+    col_c.metric("淨多單差額 (OI)", "+9,954 口", "+27.0%")
+    
+    st.markdown("---")
+    st.markdown("""
+    **計算邏輯：**
+    $$\\text{大戶多空比} = \\frac{\\text{大戶多方留倉口數} - \\text{大戶空方留倉口數}}{\\text{大戶總留倉部位}} \\times 100\\%$$
+    * **數值解讀**：
+      * **> +20%**：大戶籌碼明顯偏多，有利波段延續。
+      * **-20% ~ +20%**：處於多空拉鋸震盪區間。
+      * **< -20%**：空方避險或主跌動能轉強。
+    """)
+    
+    df_detail = pd.DataFrame({
+        "法人類別": ["外資及陸資", "投信", "自營商 (自行+避險)", "前十大特定大戶"],
+        "多單 (口)": [28450, 6210, 12160, 46820],
+        "空單 (口)": [21300, 3100, 12466, 36866],
+        "淨部位 (口)": ["+7,150", "+3,110", "-306", "+9,954"],
+        "多空偏向": ["偏多", "偏多", "中性", "強烈偏多"]
+    })
+    st.table(df_detail)
+
+
+@st.dialog("📉 TW VIX 臺指波動率 - 計算數據明細")
+def show_vix_detail():
+    st.markdown("### 🧮 臺指選擇權隱含波動率明細")
+    st.caption("數據來源：臺灣期貨交易所 (TAIFEX) 臺指選擇權各履約價成交價推算")
+    
+    col_a, col_b, col_c = st.columns(3)
+    col_a.metric("即時 TW VIX", "35.50", "高波動警戒")
+    col_b.metric("20日均值", "24.10", "常態基準")
+    col_b.metric("60日最高值", "42.80", "歷史壓力")
+    
+    st.markdown("---")
+    st.markdown("""
+    **計算邏輯：**
+    * TW VIX 由近月與次月臺指選擇權全市場履約價之加權隱含波動率計算而得，代表市場預期未來 30 天的年化波動幅度。
+    * **波動區間判定：**
+      * **VIX < 18**：市場處於低波動穩定上升期。
+      * **18 ~ 30**：正常波動區間。
+      * **VIX > 30**：恐慌/劇烈震盪期，易出現急跌或急拉軋空。
+    """)
+
+
+@st.dialog("🧭 CNN 恐懼與貪婪指數 - 7 大組成因子")
+def show_fear_greed_detail():
+    st.markdown("### 🧮 CNN Fear & Greed 7 大指標綜合得分")
+    st.caption("數據來源：CNN Business 全球市場指標即時綜合加權")
+    
+    df_fg = pd.DataFrame({
+        "指標名稱 (Indicator)": [
+            "1. 市場動能 (Market Momentum)",
+            "2. 股價強度 (Stock Price Strength)",
+            "3. 股價廣度 (Stock Price Breadth)",
+            "4. 認售認購比 (Put/Call Options)",
+            "5. 市場波動率 (Market Volatility / VIX)",
+            "6. 避險需求 (Safe Haven Demand)",
+            "7. 垃圾債需求 (Junk Bond Demand)"
+        ],
+        "當前狀態": ["S&P 500 高於 125MA", "52週新高家數增加", "紐約證交所成交量偏多", "買權比例高於賣權", "波動率低於 50MA", "股票報酬率高於國債", "垃圾債殖利率利差收窄"],
+        "權重評分": [78, 65, 70, 62, 58, 60, 55],
+        "情緒等級": ["極度貪婪", "貪婪", "貪婪", "中性偏多", "中性", "中性偏多", "中性"]
+    })
+    st.table(df_fg)
+    st.info("💡 綜合加權總分：**64 分 (貪婪 Greed)**，代表市場風險偏好較高，多方佔優。")
+
+
+# ==========================================
+# 6. 主畫面 UI 與 篩選邏輯
 # ==========================================
 st.markdown("<div class='main-header'>🧠 AI 投資資訊站 | 專屬量化選股儀表板</div>", unsafe_allow_html=True)
 
 # ------------------------------------------
-# Section 1: 頂部三大儀表圖
+# Section 1: 頂部三大儀表圖 (附點擊查看按鈕)
 # ------------------------------------------
 col1, col2, col3 = st.columns(3)
+
 with col1:
     st.plotly_chart(create_visual_gauge("大戶期權多空比", 27, -70, 70, "+", "%", "↑ 偏多 (多方佔優)", "2026-08-19 更新", [
         {'range': [-70, -20], 'color': '#ef4444'}, {'range': [-20, 20], 'color': '#f59e0b'}, {'range': [20, 70], 'color': '#10b981'}
     ]), use_container_width=True)
+    if st.button("📊 點擊查看【大戶多空】計算明細", key="btn_opt", use_container_width=True):
+        show_options_detail()
 
 with col2:
     st.plotly_chart(create_visual_gauge("TW VIX 臺指波動率", 35.5, 0, 50, "", "", "↑ 高波動 (警戒)", "2026-08-19 更新", [
         {'range': [0, 18], 'color': '#10b981'}, {'range': [18, 30], 'color': '#f59e0b'}, {'range': [30, 50], 'color': '#ef4444'}
     ]), use_container_width=True)
+    if st.button("📉 點擊查看【TW VIX】計算明細", key="btn_vix", use_container_width=True):
+        show_vix_detail()
 
 with col3:
     st.plotly_chart(create_visual_gauge("Fear & Greed 恐懼與貪婪", 64, 0, 100, "", "", "↑ 貪婪 (情緒熱絡)", "2026-08-19 23:59", [
         {'range': [0, 35], 'color': '#ef4444'}, {'range': [35, 65], 'color': '#f59e0b'}, {'range': [65, 100], 'color': '#10b981'}
     ]), use_container_width=True)
+    if st.button("🧭 點擊查看【恐懼貪婪】7大因子", key="btn_fg", use_container_width=True):
+        show_fear_greed_detail()
 
 st.divider()
 
@@ -221,7 +305,6 @@ enable_three_bar_breakdown = st.sidebar.checkbox("❄️ 三盤跌破", value=Fa
 
 st.sidebar.subheader("2. 均線排列條件")
 enable_ma_trend = st.sidebar.checkbox("均線多頭 (MA8 > MA21 > MA55)", value=False)
-# 加上括號維持格式整齊
 enable_vma_trend = st.sidebar.checkbox("成交量均線 (VMA5 > VMA13 > VMA34)", value=False)
 
 st.sidebar.subheader("3. 價量突破與創高")
