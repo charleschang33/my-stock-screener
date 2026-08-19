@@ -226,7 +226,7 @@ def get_stock_data_source(ticker_list, data_source="yfinance", interval="1d", pe
 
 
 # ==========================================
-# 4. 繪製半圓形彩色儀表盤 (支援自訂標籤顏色)
+# 4. 繪製半圓形彩色儀表盤
 # ==========================================
 def create_visual_gauge(title, val, min_val, max_val, prefix="", suffix="", status_label="", sub_text="", steps_config=None, label_color="#059669"):
     fig = go.Figure(go.Indicator(
@@ -418,7 +418,7 @@ with m_col8:
 st.markdown("<div style='margin-bottom: 8px;'></div>", unsafe_allow_html=True)
 
 # ------------------------------------------
-# Section 1: 頂部三大儀表圖 (中間與右邊已改為紅色字體與統一色系)
+# Section 1: 頂部三大儀表圖
 # ------------------------------------------
 col1, col2, col3 = st.columns(3)
 
@@ -442,6 +442,65 @@ with col3:
     ], label_color="#ef4444"), use_container_width=True)
     if st.button("🧭 點擊查看【恐懼貪婪】7大因子", key="btn_fg", use_container_width=True):
         show_fear_greed_detail()
+
+# ------------------------------------------
+# Section 1.5: 台股族群成交量價比較模組 (新增於半圓下方)
+# ------------------------------------------
+st.markdown("#### 🔥 台股主要族群成交量與漲跌幅比較")
+
+# 模擬/統計當日主要族群成交比重與平均漲跌幅
+sector_data = pd.DataFrame({
+    "族群名稱": ["半導體", "電腦週邊", "電子零組件", "其他電子/設備", "光電/鏡頭", "航運海運", "金融保險", "綠能重電"],
+    "成交金額 (億)": [1680, 840, 430, 310, 195, 210, 165, 120],
+    "成交比重 (%)": [42.5, 21.3, 10.9, 7.8, 4.9, 5.3, 4.2, 3.1],
+    "族群平均漲跌 (%)": [1.45, 0.82, -0.45, 1.85, 2.10, 0.35, -0.20, 0.95],
+    "指標領頭股": ["台積電、聯發科", "廣達、緯穎", "欣興、台達電", "致茂、志聖", "大立光、玉晶光", "長榮、陽明", "富邦金、國泰金", "華城、中興電"]
+})
+
+# 繪製族群量價雙軸圖
+fig_sector = make_subplots(specs=[[{"secondary_y": True}]])
+
+# 柱狀圖：成交金額
+fig_sector.add_trace(
+    go.Bar(
+        x=sector_data["族群名稱"],
+        y=sector_data["成交金額 (億)"],
+        name="成交金額 (億元)",
+        marker_color="#3b82f6",
+        text=[f"{v}億 ({p}%)" for v, p in zip(sector_data["成交金額 (億)"], sector_data["成交比重 (%)"])],
+        textposition="auto"
+    ),
+    secondary_y=False
+)
+
+# 折線圖：平均漲跌幅 (紅漲綠跌)
+scatter_colors = ['#ef4444' if pct >= 0 else '#22c55e' for pct in sector_data["族群平均漲跌 (%)"]]
+fig_sector.add_trace(
+    go.Scatter(
+        x=sector_data["族群名稱"],
+        y=sector_data["族群平均漲跌 (%)"],
+        name="族群漲跌幅 (%)",
+        mode="lines+markers+text",
+        line=dict(color="#f59e0b", width=2.5),
+        marker=dict(size=9, color=scatter_colors),
+        text=[f"{pct:+.2f}%" for pct in sector_data["族群平均漲跌 (%)"]],
+        textposition="top center",
+        textfont=dict(color=scatter_colors, size=13, family="Arial Black")
+    ),
+    secondary_y=True
+)
+
+fig_sector.update_layout(
+    height=320,
+    margin=dict(l=20, r=20, t=30, b=20),
+    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+    paper_bgcolor='rgba(0,0,0,0)',
+    plot_bgcolor='rgba(0,0,0,0)'
+)
+fig_sector.update_yaxes(title_text="成交金額 (億元)", secondary_y=False, showgrid=True, gridcolor="#f1f5f9")
+fig_sector.update_yaxes(title_text="族群漲跌幅 (%)", secondary_y=True, showgrid=False)
+
+st.plotly_chart(fig_sector, use_container_width=True)
 
 st.divider()
 
@@ -583,7 +642,7 @@ for item in current_db:
     pass_three_breakdown = True
     if enable_three_bar_breakdown:
         if not is_three_bar_breakdown:
-            pass_three_breakdown = False
+            pass_three_bar = False
     if is_three_bar_breakdown:
         tags.append("三盤跌破")
 
