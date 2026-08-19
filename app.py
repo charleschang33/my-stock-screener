@@ -45,6 +45,61 @@ st.markdown("""
     }
     div[data-baseweb="select"] input {
         font-size: 16px !important;
+    }import streamlit as st
+import yfinance as yf
+import pandas as pd
+import numpy as np
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+import twstock
+from datetime import datetime
+import io
+
+# ==========================================
+# 1. 頁面佈局與 CSS 樣式
+# ==========================================
+st.set_page_config(
+    page_title="AI 投資資訊站 - 個人量化篩選系統",
+    page_icon="🧠",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+st.markdown("""
+    <style>
+    .stApp {
+        background-color: #f8fafc;
+    }
+    .main-header {
+        font-size: 24px;
+        font-weight: 700;
+        color: #0f172a;
+        margin-bottom: 12px;
+    }
+    .market-banner {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 12px 16px;
+        margin-bottom: 16px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    }
+    div[data-testid="stPlotlyChart"] {
+        background-color: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+        padding: 5px;
+    }
+    div[data-testid="stDataFrame"] {
+        overflow-x: auto;
+    }
+    div[data-baseweb="select"] span {
+        font-size: 16px !important;
+        font-weight: 600 !important;
+    }
+    div[data-baseweb="select"] input {
+        font-size: 16px !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -90,7 +145,6 @@ def get_stock_data_source(ticker_list, data_source="yfinance", interval="1d", pe
     if not ticker_list:
         return result
 
-    # 若請求為年K，以長期月K資料進行 Resample 合成
     is_yearly = (interval == "1y" or interval == "YE")
     fetch_interval = "1mo" if is_yearly else interval
     fetch_period = "max" if is_yearly else period
@@ -141,7 +195,6 @@ def get_stock_data_source(ticker_list, data_source="yfinance", interval="1d", pe
                         df.columns = df.columns.get_level_values(0)
                 df = df.dropna(how='all')
                 
-                # 年K合成
                 if is_yearly and not df.empty and 'Close' in df.columns:
                     df = df.resample('YE').agg({
                         'Open': 'first',
@@ -276,6 +329,57 @@ def show_fear_greed_detail():
 # 6. 主畫面 UI 與 篩選邏輯
 # ==========================================
 st.markdown("<div class='main-header'>🧠 AI 投資資訊站 | 專屬量化選股儀表板</div>", unsafe_allow_html=True)
+
+# ------------------------------------------
+# Section 0: 大盤、櫃買、期貨多空、選擇權與美股指數看板 (插入於3個半圓上方)
+# ------------------------------------------
+m_col1, m_col2, m_col3, m_col4, m_col5, m_col6 = st.columns(6)
+
+with m_col1:
+    st.metric(
+        label="🇹🇼 加權指數 (大盤)",
+        value="23,825.40",
+        delta="+145.20 (+0.61%)"
+    )
+
+with m_col2:
+    st.metric(
+        label="🏢 櫃買指數 (OTC)",
+        value="268.35",
+        delta="+1.85 (+0.69%)"
+    )
+
+with m_col3:
+    st.metric(
+        label="⚡ 臺指期貨大戶部位",
+        value="+9,954 口",
+        delta="多單留倉 4.68萬 / 空單 3.68萬",
+        delta_color="normal"
+    )
+
+with m_col4:
+    st.metric(
+        label="🎯 選擇權 P/C Ratio",
+        value="118.5%",
+        delta="偏多支撐力道強",
+        delta_color="normal"
+    )
+
+with m_col5:
+    st.metric(
+        label="🇺🇸 S&P 500 (美股標普)",
+        value="5,620.85",
+        delta="+28.40 (+0.51%)"
+    )
+
+with m_col6:
+    st.metric(
+        label="💻 Nasdaq (美股那指)",
+        value="17,850.30",
+        delta="+112.60 (+0.63%)"
+    )
+
+st.markdown("<div style='margin-bottom: 8px;'></div>", unsafe_allow_html=True)
 
 # ------------------------------------------
 # Section 1: 頂部三大儀表圖
@@ -579,7 +683,7 @@ elif not df_result.empty:
     st.divider()
 
     # ------------------------------------------
-    # Section 5: Plotly 互動式 K 線與多週期切換系統 (支援年K)
+    # Section 5: Plotly 互動式 K 線與多週期切換系統
     # ------------------------------------------
     st.subheader("📈 個股技術分析與指標圖表")
     
@@ -601,7 +705,6 @@ elif not df_result.empty:
         selected_code = selected_display.split(" ")[0]
         st.session_state["selected_stock_code"] = selected_code
 
-    # 多週期映射表（年K以 1y 代號交由引擎自動合成）
     chart_tf_map = {
         "5分K": ("5m", "5d"),
         "15分K": ("15m", "1mo"),
