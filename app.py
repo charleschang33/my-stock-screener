@@ -226,14 +226,14 @@ def get_stock_data_source(ticker_list, data_source="yfinance", interval="1d", pe
 
 
 # ==========================================
-# 4. 繪製半圓形彩色儀表盤
+# 4. 繪製半圓形彩色儀表盤 (支援自訂標籤顏色)
 # ==========================================
-def create_visual_gauge(title, val, min_val, max_val, prefix="", suffix="", status_label="", sub_text="", steps_config=None):
+def create_visual_gauge(title, val, min_val, max_val, prefix="", suffix="", status_label="", sub_text="", steps_config=None, label_color="#059669"):
     fig = go.Figure(go.Indicator(
         mode="gauge+number",
         value=val,
         number={'prefix': prefix, 'suffix': suffix, 'font': {'size': 30, 'color': '#0f172a', 'family': 'Arial Black'}},
-        title={'text': f"<b>{title}</b><br><span style='font-size:12px;color:#059669;font-weight:bold;'>{status_label}</span><br><span style='font-size:11px;color:#94a3b8;'>{sub_text}</span>", 'font': {'size': 14, 'color': '#334155'}},
+        title={'text': f"<b>{title}</b><br><span style='font-size:12px;color:{label_color};font-weight:bold;'>{status_label}</span><br><span style='font-size:11px;color:#94a3b8;'>{sub_text}</span>", 'font': {'size': 14, 'color': '#334155'}},
         gauge={
             'shape': "angular",
             'axis': {'range': [min_val, max_val], 'tickwidth': 1, 'tickcolor': "#cbd5e1", 'nticks': 5},
@@ -323,7 +323,7 @@ if "selected_stock_code" not in st.session_state:
     st.session_state["selected_stock_code"] = "2330.TW"
 
 # ------------------------------------------
-# Section 0: 大盤、櫃買、台幣、黃金、期貨多空、選擇權與美股指數看板 (8 欄完整佈局)
+# Section 0: 大盤、櫃買、台幣、黃金、期貨多空、選擇權與美股指數看板
 # ------------------------------------------
 m_col1, m_col2, m_col3, m_col4, m_col5, m_col6, m_col7, m_col8 = st.columns(8)
 
@@ -418,28 +418,28 @@ with m_col8:
 st.markdown("<div style='margin-bottom: 8px;'></div>", unsafe_allow_html=True)
 
 # ------------------------------------------
-# Section 1: 頂部三大儀表圖
+# Section 1: 頂部三大儀表圖 (中間與右邊已改為紅色字體與統一色系)
 # ------------------------------------------
 col1, col2, col3 = st.columns(3)
 
 with col1:
     st.plotly_chart(create_visual_gauge("大戶期權多空比", 27, -70, 70, "+", "%", "↑ 偏多 (多方佔優)", "2026-08-19 更新", [
         {'range': [-70, -20], 'color': '#ef4444'}, {'range': [-20, 20], 'color': '#f59e0b'}, {'range': [20, 70], 'color': '#10b981'}
-    ]), use_container_width=True)
+    ], label_color="#059669"), use_container_width=True)
     if st.button("📊 點擊查看【大戶多空】計算明細", key="btn_opt", use_container_width=True):
         show_options_detail()
 
 with col2:
     st.plotly_chart(create_visual_gauge("TW VIX 臺指波動率", 35.5, 0, 50, "", "", "↑ 高波動 (警戒)", "2026-08-19 更新", [
         {'range': [0, 18], 'color': '#10b981'}, {'range': [18, 30], 'color': '#f59e0b'}, {'range': [30, 50], 'color': '#ef4444'}
-    ]), use_container_width=True)
+    ], label_color="#ef4444"), use_container_width=True)
     if st.button("📉 點擊查看【TW VIX】計算明細", key="btn_vix", use_container_width=True):
         show_vix_detail()
 
 with col3:
     st.plotly_chart(create_visual_gauge("Fear & Greed 恐懼與貪婪", 64, 0, 100, "", "", "↑ 貪婪 (情緒熱絡)", "2026-08-19 23:59", [
-        {'range': [0, 35], 'color': '#ef4444'}, {'range': [35, 65], 'color': '#f59e0b'}, {'range': [65, 100], 'color': '#10b981'}
-    ]), use_container_width=True)
+        {'range': [0, 35], 'color': '#10b981'}, {'range': [35, 65], 'color': '#f59e0b'}, {'range': [65, 100], 'color': '#ef4444'}
+    ], label_color="#ef4444"), use_container_width=True)
     if st.button("🧭 點擊查看【恐懼貪婪】7大因子", key="btn_fg", use_container_width=True):
         show_fear_greed_detail()
 
