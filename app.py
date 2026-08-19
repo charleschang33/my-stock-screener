@@ -11,19 +11,6 @@ import io
 # ==========================================
 # 1. 頁面佈局與 CSS 樣式
 # ==========================================
-st.set_page_config(page_title="AI 投資資訊站", page_icon="🧠", import streamlit as st
-import yfinance as yf
-import pandas as pd
-import numpy as np
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-import twstock
-from datetime import datetime
-import io
-
-# ==========================================
-# 1. 頁面佈局與 CSS 樣式
-# ==========================================
 st.set_page_config(page_title="AI 投資資訊站", page_icon="🧠", layout="wide", initial_sidebar_state="expanded")
 
 st.markdown("""
@@ -497,7 +484,7 @@ with col3:
         show_fear_greed_detail()
 
 # ------------------------------------------
-# Section 1.2: 📈 市場漲跌幅排行榜 Top 100 模組 (已修復跌幅排序邏輯)
+# Section 1.2: 📈 市場漲跌幅排行榜 Top 100 模組
 # ------------------------------------------
 st.markdown("#### 📈 市場漲跌幅排行榜 (Top 100)")
 rank_tab_left, rank_tab_right = st.columns([1, 4])
@@ -532,7 +519,6 @@ df_ranking = pd.DataFrame({
 if "🔥 漲幅最高" in rank_type:
     df_ranking = df_ranking.sort_values(by="漲跌幅 (%)", ascending=False).head(100)
 else:
-    # 跌幅最重：確實由小到大排序（負數最大即跌幅最重）
     df_ranking = df_ranking.sort_values(by="漲跌幅 (%)", ascending=True).head(100)
 
 rank_event = st.dataframe(
