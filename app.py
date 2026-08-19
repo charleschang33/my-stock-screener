@@ -331,7 +331,7 @@ if "selected_stock_code" not in st.session_state:
     st.session_state["selected_stock_code"] = "2330.TW"
 
 # ------------------------------------------
-# Section 0: 大盤與各項行情看板 (依紅字數字 1~8 順序排列)
+# Section 0: 大盤與各項行情看板
 # ------------------------------------------
 m_col1, m_col2, m_col3, m_col4, m_col5, m_col6, m_col7, m_col8 = st.columns(8)
 
@@ -452,7 +452,7 @@ with col3:
         show_fear_greed_detail()
 
 # ------------------------------------------
-# Section 1.5: 族群成交量價比較 與 個股漲跌分佈（並排呈現）
+# Section 1.5: 族群成交量價比較 與 個股漲跌分佈
 # ------------------------------------------
 col_sec_left, col_sec_right = st.columns([1.1, 0.9])
 
@@ -510,7 +510,6 @@ with col_sec_right:
     with c_head_right:
         market_breadth_type = st.radio("市場：", ["上市", "上櫃"], horizontal=True, label_visibility="collapsed")
 
-    # 上市與上櫃漲跌分佈數據
     if market_breadth_type == "上市":
         b_labels = ["漲停", ">5%", "2-5%", "0-2%", "平盤", "0-2%", "2-5%", "<5%", "跌停"]
         b_counts = [9, 13, 71, 294, 115, 483, 105, 20, 1]
@@ -546,7 +545,6 @@ with col_sec_right:
     down_pct = (down_cnt / total_cnt) * 100
     flat_pct = (flat_cnt / total_cnt) * 100
 
-    # 漲跌比例色彩條與統計數值
     st.markdown(f"""
     <div class="breadth-bar">
         <div style="width: {up_pct:.1f}%; background-color: #ef4444;"></div>
@@ -850,7 +848,7 @@ elif not df_result.empty:
     st.divider()
 
     # ------------------------------------------
-    # Section 5: Plotly 互動式 K 線與多週期切換系統
+    # Section 5: Plotly 互動式 K 線與多週期、多指標切換系統
     # ------------------------------------------
     st.subheader("📈 技術分析與多週期圖表")
     
@@ -869,11 +867,11 @@ elif not df_result.empty:
         
     default_idx = code_list.index(current_selected)
     
-    col_stock_sel, col_tf_sel = st.columns([1, 2])
+    col_stock_sel, col_tf_sel, col_ind_sel = st.columns([1.2, 1.8, 1.2])
     
     with col_stock_sel:
         selected_display = st.selectbox(
-            "目前檢視標的（可切換個股、臺指期、台幣、黃金或指數）：",
+            "目前檢視標的：",
             [all_view_options[c] for c in code_list],
             index=default_idx
         )
@@ -893,10 +891,17 @@ elif not df_result.empty:
     
     with col_tf_sel:
         chart_tf = st.radio(
-            "⏱️ 圖表時間週期切換：",
+            "⏱️ 圖表週期：",
             list(chart_tf_map.keys()),
             index=4,
             horizontal=True
+        )
+
+    with col_ind_sel:
+        indicator_choice = st.selectbox(
+            "📊 副圖技術指標：",
+            ["KD 指標 (9,3,3)", "RSI 強弱指標 (6,12)", "MACD 指標 (12,26,9)", "DMI 趨向指標 (14)"],
+            index=0
         )
         
     c_interval, c_period = chart_tf_map[chart_tf]
@@ -930,6 +935,42 @@ elif not df_result.empty:
                 d_list.append(d_curr)
             df_k['K'] = k_list[1:]
             df_k['D'] = d_list[1:]
+
+            # 4. 計算 RSI 指標 (6, 12)
+            delta = df_k['Close'].diff()
+            gain = (delta.where(delta > 0, 0)).rolling(window=6, min_periods=1).mean()
+            loss = (-delta.where(delta < 0, 0)).rolling(window=6, min_periods=1).mean()
+            rs = gain / loss.replace(0, np.nan)
+            df_k['RSI6'] = (100 - (100 / (1 + rs))).fillna(50)
+
+            gain12 = (delta.where(delta > 0, 0)).rolling(window=12, min_periods=1).mean()
+            loss12 = (-delta.where(delta < 0, 0)).rolling(window=12, min_periods=1).mean()
+            rs12 = gain12 / loss12.replace(0, np.nan)
+            df_k['RSI12'] = (100 - (100 / (1 + rs12))).fillna(50)
+
+            # 5. 計算 MACD (12, 26, 9)
+            exp12 = df_k['Close'].ewm(span=12, adjust=False).mean()
+            exp26 = df_k['Close'].ewm(span=26, adjust=False).mean()
+            df_k['DIF'] = exp12 - exp26
+            df_k['MACD'] = df_k['DIF'].ewm(span=9, adjust=False).mean()
+            df_k['OSC'] = df_k['DIF'] - df_k['MACD']
+
+            # 6. 計算 DMI 指標 (14)
+            high_diff = df_k['High'].diff()
+            low_diff = -df_k['Low'].diff()
+            plus_dm = np.where((high_diff > low_diff) & (high_diff > 0), high_diff, 0.0)
+            minus_dm = np.where((low_diff > high_diff) & (low_diff > 0), low_diff, 0.0)
+            
+            tr1 = df_k['High'] - df_k['Low']
+            tr2 = (df_k['High'] - df_k['Close'].shift(1)).abs()
+            tr3 = (df_k['Low'] - df_k['Close'].shift(1)).abs()
+            tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+            
+            tr14 = tr.rolling(14, min_periods=1).sum().replace(0, np.nan)
+            df_k['Plus_DI'] = (pd.Series(plus_dm, index=df_k.index).rolling(14, min_periods=1).sum() / tr14 * 100).fillna(0)
+            df_k['Minus_DI'] = (pd.Series(minus_dm, index=df_k.index).rolling(14, min_periods=1).sum() / tr14 * 100).fillna(0)
+            dx = ((df_k['Plus_DI'] - df_k['Minus_DI']).abs() / (df_k['Plus_DI'] + df_k['Minus_DI']).replace(0, np.nan) * 100).fillna(0)
+            df_k['ADX'] = dx.rolling(14, min_periods=1).mean().fillna(0)
             
             curr_row = df_k.iloc[-1]
             prev_row = df_k.iloc[-2] if len(df_k) >= 2 else curr_row
@@ -949,7 +990,7 @@ elif not df_result.empty:
                 shared_xaxes=True,
                 vertical_spacing=0.08,
                 row_heights=[0.54, 0.23, 0.23],
-                subplot_titles=("", f"<b>成交量 (VMA5 {arrow_vma5} / VMA13 {arrow_vma13} / VMA34 {arrow_vma34})</b>", "<b>KD 指標 (9, 3, 3)</b>")
+                subplot_titles=("", f"<b>成交量 (VMA5 {arrow_vma5} / VMA13 {arrow_vma13} / VMA34 {arrow_vma34})</b>", f"<b>{indicator_choice}</b>")
             )
             
             # 1. 主圖：K 線
@@ -1020,18 +1061,31 @@ elif not df_result.empty:
                 row=2, col=1
             )
             
-            # 3. 副圖：KD
-            fig_k.add_trace(
-                go.Scatter(x=plot_df.index, y=plot_df['K'], mode='lines', name='K值', line=dict(color='#f59e0b', width=1.5), showlegend=False),
-                row=3, col=1
-            )
-            fig_k.add_trace(
-                go.Scatter(x=plot_df.index, y=plot_df['D'], mode='lines', name='D值', line=dict(color='#3b82f6', width=1.5), showlegend=False),
-                row=3, col=1
-            )
-            
-            fig_k.add_hline(y=80, line_dash="dot", line_color="#ef4444", line_width=1, row=3, col=1)
-            fig_k.add_hline(y=20, line_dash="dot", line_color="#22c55e", line_width=1, row=3, col=1)
+            # 3. 第 3 層副圖：依使用者選擇動態繪製 KD / RSI / MACD / DMI
+            if "KD" in indicator_choice:
+                fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['K'], mode='lines', name='K值', line=dict(color='#f59e0b', width=1.5)), row=3, col=1)
+                fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['D'], mode='lines', name='D值', line=dict(color='#3b82f6', width=1.5)), row=3, col=1)
+                fig_k.add_hline(y=80, line_dash="dot", line_color="#ef4444", line_width=1, row=3, col=1)
+                fig_k.add_hline(y=20, line_dash="dot", line_color="#22c55e", line_width=1, row=3, col=1)
+
+            elif "RSI" in indicator_choice:
+                fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['RSI6'], mode='lines', name='RSI 6日', line=dict(color='#ec4899', width=1.5)), row=3, col=1)
+                fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['RSI12'], mode='lines', name='RSI 12日', line=dict(color='#64748b', width=1.3)), row=3, col=1)
+                fig_k.add_hline(y=70, line_dash="dot", line_color="#ef4444", line_width=1, row=3, col=1)
+                fig_k.add_hline(y=30, line_dash="dot", line_color="#22c55e", line_width=1, row=3, col=1)
+
+            elif "MACD" in indicator_choice:
+                osc_colors = ['#ef4444' if o >= 0 else '#22c55e' for o in plot_df['OSC']]
+                fig_k.add_trace(go.Bar(x=plot_df.index, y=plot_df['OSC'], name='OSC柱狀', marker_color=osc_colors), row=3, col=1)
+                fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['DIF'], mode='lines', name='DIF快線', line=dict(color='#f59e0b', width=1.5)), row=3, col=1)
+                fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['MACD'], mode='lines', name='MACD慢線', line=dict(color='#3b82f6', width=1.5)), row=3, col=1)
+                fig_k.add_hline(y=0, line_dash="solid", line_color="#cbd5e1", line_width=1, row=3, col=1)
+
+            elif "DMI" in indicator_choice:
+                fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['Plus_DI'], mode='lines', name='+DI (多方)', line=dict(color='#ef4444', width=1.5)), row=3, col=1)
+                fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['Minus_DI'], mode='lines', name='-DI (空方)', line=dict(color='#22c55e', width=1.5)), row=3, col=1)
+                fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['ADX'], mode='lines', name='ADX (趨勢強度)', line=dict(color='#f59e0b', width=1.5)), row=3, col=1)
+                fig_k.add_hline(y=25, line_dash="dot", line_color="#94a3b8", line_width=1, row=3, col=1)
             
             fig_k.update_layout(
                 height=740,
