@@ -410,7 +410,7 @@ for item in current_db:
     if is_three_bar_breakdown:
         tags.append("三盤跌破")
 
-    # 條件 2: 均線多頭排列
+    # 條件 2: 均線多頭排列 (MA8 > MA21 > MA55)
     is_ma_aligned = (curr['MA8'] > curr['MA21'] > curr['MA55'])
     pass_ma = True
     if enable_ma_trend:
@@ -419,7 +419,7 @@ for item in current_db:
     if is_ma_aligned:
         tags.append("均線多頭")
             
-    # 條件 2-2: 量均線多頭
+    # 條件 2-2: 量均線多頭 (VMA5 > VMA13 > VMA34)
     is_vma_aligned = (curr['VMA5'] > curr['VMA13'] > curr['VMA34'])
     pass_vma = True
     if enable_vma_trend:
@@ -584,7 +584,7 @@ elif not df_result.empty:
         df_k['K'] = k_list[1:]
         df_k['D'] = d_list[1:]
         
-        # 判斷 MA 與 VMA 最新斜率與箭頭方向 (與前一根比較)
+        # 判斷 MA 與 VMA 最新斜率與箭頭方向
         curr_row = df_k.iloc[-1]
         prev_row = df_k.iloc[-2] if len(df_k) >= 2 else curr_row
         
@@ -628,7 +628,7 @@ elif not df_result.empty:
         fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['MA21'], mode='lines', name=f'MA21 {arrow_ma21}', line=dict(color='#ec4899', width=1.5)), row=1, col=1)
         fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['MA55'], mode='lines', name=f'MA55 {arrow_ma55}', line=dict(color='#8b5cf6', width=1.8)), row=1, col=1)
         
-        # 扣抵位置計算與主圖標示 (扣8、扣21、扣55)
+        # 扣抵位置計算與主圖標示（字體大小已設定為 14px 與成交量副圖標題完全一致）
         total_len = len(df_k)
         kd_annotations = [
             {"days": 8, "label": "扣8", "color": "#3b82f6"},
@@ -644,7 +644,6 @@ elif not df_result.empty:
                 kd_price = kd_row['Close']
                 
                 if kd_date in plot_df.index:
-                    # 扣抵點圓點標記
                     fig_k.add_trace(
                         go.Scatter(
                             x=[kd_date],
@@ -653,8 +652,8 @@ elif not df_result.empty:
                             name=f'{kd["label"]} ({kd_price:.1f})',
                             text=[f" ◄ {kd['label']}"],
                             textposition="middle right",
-                            textfont=dict(color=kd["color"], size=11, family="Arial Black"),
-                            marker=dict(size=8, color=kd["color"], symbol="circle-open", line=dict(width=2)),
+                            textfont=dict(color=kd["color"], size=14, family="Arial Black"),
+                            marker=dict(size=10, color=kd["color"], symbol="circle-open", line=dict(width=2.5)),
                             showlegend=False
                         ),
                         row=1, col=1
