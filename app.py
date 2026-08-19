@@ -82,15 +82,15 @@ US_STOCK_DATABASE = [
 
 
 # ==========================================
-# 3. 雙數據引擎 (yfinance / twstock)
+# 3. 多週期數據引擎 (支援分時K線)
 # ==========================================
-@st.cache_data(ttl=1800, show_spinner=False)
+@st.cache_data(ttl=600, show_spinner=False)
 def get_stock_data_source(ticker_list, data_source="yfinance", interval="1d", period="2y"):
     result = {}
     if not ticker_list:
         return result
 
-    if data_source == "twstock":
+    if data_source == "twstock" and interval == "1d":
         now = datetime.now()
         start_year = now.year if now.month >= 4 else now.year - 1
         start_month = (now.month - 3) if now.month >= 4 else (now.month + 9)
@@ -110,14 +110,6 @@ def get_stock_data_source(ticker_list, data_source="yfinance", interval="1d", pe
                         'Volume': [h.capacity for h in hist]
                     }).set_index('Date')
                     df.index = pd.to_datetime(df.index)
-                    
-                    if interval == "1wk":
-                        df = df.resample('W').agg({'Open': 'first', 'High': 'max', 'Low': 'min', 'Close': 'last', 'Volume': 'sum'}).dropna()
-                    elif interval == "1mo":
-                        df = df.resample('ME').agg({'Open': 'first', 'High': 'max', 'Low': 'min', 'Close': 'last', 'Volume': 'sum'}).dropna()
-                    elif interval == "1y":
-                        df = df.resample('YE').agg({'Open': 'first', 'High': 'max', 'Low': 'min', 'Close': 'last', 'Volume': 'sum'}).dropna()
-                    
                     result[t] = df
             except Exception:
                 continue
@@ -288,13 +280,14 @@ else:
 
 current_db = STOCK_DATABASE if "台股" in market_choice else US_STOCK_DATABASE
 
+# 側邊欄選股週期（日、週、月、年）
 timeframe_map = {
     "日K線 (Daily)": ("1d", "1y"),
     "週K線 (Weekly)": ("1wk", "2y"),
     "月K線 (Monthly)": ("1mo", "5y"),
     "年K線 (Yearly)": ("1y", "10y")
 }
-selected_timeframe = st.sidebar.selectbox("⏱️ 分析週期", list(timeframe_map.keys()), index=0)
+selected_timeframe = st.sidebar.selectbox("⏱️ 選股分析週期", list(timeframe_map.keys()), index=0)
 interval_code, period_code = timeframe_map[selected_timeframe]
 
 st.sidebar.subheader("1. K棒型態選股")
@@ -413,7 +406,7 @@ for item in current_db:
     pass_three_breakdown = True
     if enable_three_bar_breakdown:
         if not is_three_bar_breakdown:
-            pass_three_bar = False
+            pass_three_breakdown = False
     if is_three_bar_breakdown:
         tags.append("三盤跌破")
 
@@ -488,7 +481,7 @@ for item in current_db:
         })
 
 # ------------------------------------------
-# Section 4: 表格呈現（點選自動聯動圖表）
+# Section 4: 表格呈現
 # ------------------------------------------
 df_result = pd.DataFrame(filtered_rows)
 
@@ -544,7 +537,7 @@ elif not df_result.empty:
     st.divider()
 
     # ------------------------------------------
-    # Section 5: Plotly 互動式 K 線、均線扣抵與多指標系統
+    # Section 5: Plotly 互動式 K 線與多週期切換系統
     # ------------------------------------------
     st.subheader("📈 個股技術分析與指標圖表")
     
@@ -555,16 +548,44 @@ elif not df_result.empty:
     current_selected = st.session_state.get("selected_stock_code", code_list[0])
     default_idx = code_list.index(current_selected) if current_selected in code_list else 0
     
-    selected_display = st.selectbox(
-        "目前檢視個股（可直接點上方表格或此處切換）：",
-        display_options,
-        index=default_idx
-    )
-    selected_code = selected_display.split(" ")[0]
-    st.session_state["selected_stock_code"] = selected_code
+    col_stock_sel, col_tf_sel = st.columns([1, 2])
     
-    if selected_code and selected_code in raw_stock_data:
-        df_k = raw_stock_data[selected_code].copy()
+    with col_stock_sel:
+        selected_display = st.selectbox(
+            "目前檢視個股：",
+            display_options,
+            index=default_idx
+        )
+        selected_code = selected_display.split(" ")[0]
+        st.session_state["selected_stock_code"] = selected_code
+
+    # 多週期映射表（包含 5分, 15分, 30分, 60分, 日, 週, 月, 年）
+    chart_tf_map = {
+        "5分K": ("5m", "5d"),
+        "15分K": ("15m", "1mo"),
+        "30分K": ("30m", "1mo"),
+        "60分K": ("60m", "3mo"),
+        "日K": ("1d", "1y"),
+        "週K": ("1wk", "2y"),
+        "月K": ("1mo", "5y"),
+        "年K": ("1y", "10y")
+    }
+    
+    with col_tf_sel:
+        chart_tf = st.radio(
+            "⏱️ 圖表時間週期切換：",
+            list(chart_tf_map.keys()),
+            index=4,  # 預設為 日K
+            horizontal=True
+        )
+        
+    c_interval, c_period = chart_tf_map[chart_tf]
+    
+    # 依使用者選取的「圖表週期」獨立取得即時 K 線與分時資料
+    chart_stock_dict = get_stock_data_source([selected_code], data_source="yfinance", interval=c_interval, period=c_period)
+    
+    if selected_code and selected_code in chart_stock_dict:
+        df_k = chart_stock_dict[selected_code].copy()
         
         # 1. 價格均線 (MA8, MA21, MA55)
         df_k['MA8'] = df_k['Close'].rolling(8, min_periods=1).mean()
@@ -591,7 +612,7 @@ elif not df_result.empty:
         df_k['K'] = k_list[1:]
         df_k['D'] = d_list[1:]
         
-        # 判斷 MA 與 VMA 最新斜率與顏色箭頭（上為紅、下為綠）
+        # 判斷最新斜率與紅綠顏色箭頭
         curr_row = df_k.iloc[-1]
         prev_row = df_k.iloc[-2] if len(df_k) >= 2 else curr_row
         
