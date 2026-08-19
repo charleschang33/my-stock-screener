@@ -508,11 +508,20 @@ base_db_names = [item["name"] for item in STOCK_DATABASE]
 base_db_inds = [item["industry"] for item in STOCK_DATABASE]
 
 full_rank_codes, full_rank_names, full_rank_inds = [], [], []
+
+# 同時建立一個全域的「代號 -> 股名」對應字典，供後續所有選單使用
+if "GLOBAL_STOCK_NAME_MAP" not in st.session_state:
+    st.session_state["GLOBAL_STOCK_NAME_MAP"] = {item["code"]: item["name"] for item in STOCK_DATABASE}
+
 for i in range(6):
     for c, n, ind in zip(base_db_codes, base_db_names, base_db_inds):
-        full_rank_codes.append(f"{c.split('.')[0]}_{i}.TW" if i > 0 else c)
-        full_rank_names.append(f"{n}_{i}" if i > 0 else n)
+        code_key = f"{c.split('.')[0]}_{i}.TW" if i > 0 else c
+        name_val = f"{n}_{i}" if i > 0 else n
+        full_rank_codes.append(code_key)
+        full_rank_names.append(name_val)
         full_rank_inds.append(ind)
+        # 動態將排行榜產生的分身代號與股名加入全域字典
+        st.session_state["GLOBAL_STOCK_NAME_MAP"][code_key] = name_val
 
 dummy_pcts = np.random.uniform(-9.9, 9.9, len(full_rank_codes))
 dummy_prices = np.random.uniform(15.0, 1200.0, len(full_rank_codes))
@@ -1076,18 +1085,35 @@ elif not df_result.empty:
     # ------------------------------------------
     st.subheader("📈 技術分析與多週期圖表")
     
-    all_view_options = {}
+   all_view_options = {}
     for idx_item in MARKET_INDICES:
         all_view_options[idx_item["code"]] = f"📊 {idx_item['name']} ({idx_item['code']})"
     
-    # 同時納入完整資料庫 STOCK_DATABASE 以確保所有股名皆可完整顯示
-    full_db_lookup = {item["code"]: item["name"] for item in current_db}
+    # 1. 優先從全域字典（包含資料庫與排行榜動態產生的分身）抓取股名
+    global_name_map = st.session_state.get("GLOBAL_STOCK_NAME_MAP", {})
     
-    for _, row in df_result.iterrows():
-        code = row["代號"]
-        # 優先從 row 取得股名，若無則從 STOCK_DATABASE 尋找，最後才預設為空字串
-        name = row.get("股名", full_db_lookup.get(code, ""))
-        all_view_options[code] = f"{code} {name}"
+    # 2. 納入篩選結果清單的股名
+    if 'df_result' in locals() and not df_result.empty:
+        for _, row in df_result.iterrows():
+            global_name_map[row["代號"]] = row["股名"]
+
+    # 3. 確保當前被點擊或選中的標的（包含排行榜選中的）都能帶出股名
+    current_active_code = st.session_state.get("selected_stock_code", "")
+    
+    # 組合所有可能的候選代號（包含大盤、資料庫、排行榜）
+    all_candidate_codes = list(MARKET_INDICES_CODES := [m["code"] for m in MARKET_INDICES])
+    if 'df_result' in locals() and not df_result.empty:
+        all_candidate_codes.extend(df_result["代號"].tolist())
+    all_candidate_codes.extend(list(global_name_map.keys()))
+    if current_active_code and current_active_code not in all_candidate_codes:
+        all_candidate_codes.append(current_active_code)
+
+    # 建立最終的下拉選單選項對應
+    for code in dict.fromkeys(all_candidate_codes): # 移除重複
+        if code in [m["code"] for m in MARKET_INDICES]:
+            continue # 大盤指數已經在前面處理過
+        stock_name = global_name_map.get(code, "")
+        all_view_options[code] = f"{code} {stock_name}".strip()
         
     code_list = list(all_view_options.keys())
     current_selected = st.session_state.get("selected_stock_code", code_list[0])
