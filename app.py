@@ -5,6 +5,7 @@ import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import twstock
+from datetime import datetime
 import io
 
 # ==========================================
@@ -71,24 +72,26 @@ US_STOCK_DATABASE = [
 
 
 # ==========================================
-# 3. 雙數據引擎 (yfinance / twstock)
+# 3. 雙數據引擎 (含 twstock 優化與防擋處理)
 # ==========================================
-@st.cache_data(ttl=3600, show_spinner=False)
+@st.cache_data(ttl=1800, show_spinner=False)
 def get_stock_data_source(ticker_list, data_source="yfinance", interval="1d", period="2y"):
-    """支援 yfinance 與 twstock 雙資料源"""
     result = {}
     if not ticker_list:
         return result
 
     if data_source == "twstock":
-        # 使用 twstock 抓取台股日線資料
+        now = datetime.now()
+        start_year = now.year if now.month >= 4 else now.year - 1
+        start_month = (now.month - 3) if now.month >= 4 else (now.month + 9)
+        
         for t in ticker_list:
             raw_code = t.split('.')[0]
             try:
                 stock = twstock.Stock(raw_code)
-                # 抓取最近 200 筆交易日歷史
-                hist = stock.fetch_from(2023, 1)
-                if hist and len(hist) > 20:
+                # 僅抓取近幾個月，避免發送過多 HTTP 請求被證交所阻擋
+                hist = stock.fetch_from(start_year, start_month)
+                if hist and len(hist) > 15:
                     df = pd.DataFrame({
                         'Date': [h.date for h in hist],
                         'Open': [h.open for h in hist],
@@ -99,7 +102,6 @@ def get_stock_data_source(ticker_list, data_source="yfinance", interval="1d", pe
                     }).set_index('Date')
                     df.index = pd.to_datetime(df.index)
                     
-                    # 依選擇的週期進行 Resample 聚合
                     if interval == "1wk":
                         df = df.resample('W').agg({'Open': 'first', 'High': 'max', 'Low': 'min', 'Close': 'last', 'Volume': 'sum'}).dropna()
                     elif interval == "1mo":
@@ -111,7 +113,7 @@ def get_stock_data_source(ticker_list, data_source="yfinance", interval="1d", pe
             except Exception:
                 continue
     else:
-        # 使用 yfinance 批次高速抓取 (支援台/美股 與 日/週/月/年 週期)
+        # yfinance 批次平行抓取
         try:
             data = yf.download(
                 tickers=ticker_list,
@@ -123,13 +125,13 @@ def get_stock_data_source(ticker_list, data_source="yfinance", interval="1d", pe
             )
             if len(ticker_list) == 1:
                 t = ticker_list[0]
-                if not data.empty and len(data) > 10:
+                if not data.empty and len(data) > 5:
                     result[t] = data.dropna(how='all')
             else:
                 for t in ticker_list:
                     try:
                         df = data[t].dropna(how='all')
-                        if not df.empty and len(df) > 10:
+                        if not df.empty and len(df) > 5:
                             result[t] = df
                     except Exception:
                         continue
@@ -192,19 +194,18 @@ st.divider()
 # ------------------------------------------
 st.sidebar.header("⚙️ 篩選條件設定")
 
-# 1. 市場與資料源選擇
 market_choice = st.sidebar.radio("選擇市場", ["台股 (TW)", "美股 (US)"], index=0)
 
-# 美股固定使用 yfinance，台股可自選
 if "台股" in market_choice:
     data_source = st.sidebar.radio("📡 資料來源 (Data Source)", ["yfinance", "twstock"], index=0)
+    if data_source == "twstock":
+        st.sidebar.caption("⚠️ twstock 連線台灣證交所，若因證交所限流阻擋請切換回 yfinance。")
 else:
     data_source = "yfinance"
     st.sidebar.info("美股預設由 yfinance 取得報價")
 
 current_db = STOCK_DATABASE if "台股" in market_choice else US_STOCK_DATABASE
 
-# 2. 分析週期選擇 (日、週、月、年)
 timeframe_map = {
     "日K線 (Daily)": ("1d", "1y"),
     "週K線 (Weekly)": ("1wk", "2y"),
@@ -216,12 +217,12 @@ interval_code, period_code = timeframe_map[selected_timeframe]
 
 st.sidebar.subheader("1. 均線排列與突破條件")
 enable_ma_trend = st.sidebar.checkbox("均線多頭 (Close > MA8 > MA21 > MA55)", value=False)
-enable_break_ma20 = st.sidebar.checkbox("🚀 當期突破 20 均線 (月線突破)", value=True)
+enable_break_ma20 = st.sidebar.checkbox("🚀 當期突破 20 均線 (月線突破)", value=False)
 enable_break_ma60 = st.sidebar.checkbox("🌟 當期突破 60 均線 (季線突破)", value=False)
 enable_vma_trend = st.sidebar.checkbox("成交量均線 VMA5 > VMA13 > VMA34", value=False)
 
 st.sidebar.subheader("2. 帶量突破與創高")
-enable_vol_breakout = st.sidebar.checkbox("成交量 > 5日均量 N 倍", value=True)
+enable_vol_breakout = st.sidebar.checkbox("成交量 > 5日均量 N 倍", value=False)
 vol_mult = st.sidebar.slider("成交量放大倍數", 1.2, 5.0, 1.5, 0.1)
 
 enable_high_breakout = st.sidebar.checkbox("收盤價創 N 期新高", value=False)
@@ -259,6 +260,10 @@ with col_ind:
 target_tickers = [item["code"] for item in current_db]
 raw_stock_data = get_stock_data_source(target_tickers, data_source=data_source, interval=interval_code, period=period_code)
 
+# 若 twstock 完全被證交所擋住，給予明顯提示
+if data_source == "twstock" and len(raw_stock_data) == 0:
+    st.error("🚨 台灣證交所伺服器暫時阻擋了雲端連線請求，請將左側【資料來源】切換為 **`yfinance`** 即可即時取得報價！")
+
 filtered_rows = []
 
 for item in current_db:
@@ -271,27 +276,27 @@ for item in current_db:
         continue
         
     df = raw_stock_data[code].copy()
-    if len(df) < 25:
+    if len(df) < 10:
         continue
         
-    # 計算各週期均線
-    df['MA8'] = df['Close'].rolling(8).mean()
-    df['MA20'] = df['Close'].rolling(20).mean()
-    df['MA21'] = df['Close'].rolling(21).mean()
-    df['MA55'] = df['Close'].rolling(55).mean()
-    df['MA60'] = df['Close'].rolling(60).mean()
+    # 計算均線
+    df['MA8'] = df['Close'].rolling(8, min_periods=1).mean()
+    df['MA20'] = df['Close'].rolling(20, min_periods=1).mean()
+    df['MA21'] = df['Close'].rolling(21, min_periods=1).mean()
+    df['MA55'] = df['Close'].rolling(55, min_periods=1).mean()
+    df['MA60'] = df['Close'].rolling(60, min_periods=1).mean()
     
     # 計算量均線
-    df['VMA5'] = df['Volume'].rolling(5).mean()
-    df['VMA13'] = df['Volume'].rolling(13).mean()
-    df['VMA34'] = df['Volume'].rolling(34).mean()
+    df['VMA5'] = df['Volume'].rolling(5, min_periods=1).mean()
+    df['VMA13'] = df['Volume'].rolling(13, min_periods=1).mean()
+    df['VMA34'] = df['Volume'].rolling(34, min_periods=1).mean()
     
     curr = df.iloc[-1]
-    prev = df.iloc[-2]
+    prev = df.iloc[-2] if len(df) >= 2 else curr
     
     close = float(curr['Close'])
     prev_close = float(prev['Close'])
-    pct_change = ((close - prev_close) / prev_close) * 100
+    pct_change = ((close - prev_close) / prev_close) * 100 if prev_close > 0 else 0
     volume = float(curr['Volume'])
     vol_display = volume / 1000 if "台股" in market_choice else volume
     
@@ -313,37 +318,31 @@ for item in current_db:
     # 條件 1: 均線多頭排列
     pass_ma = True
     if enable_ma_trend:
-        if not (pd.notna(curr['MA55']) and close > curr['MA8'] > curr['MA21'] > curr['MA55']):
+        if not (close > curr['MA8'] > curr['MA21'] > curr['MA55']):
             pass_ma = False
         else:
             tags.append("均線多頭")
 
-    # 條件 1-2: 突破 20 MA (當期收盤 > 20MA 且 前一期 <= 20MA)
+    # 條件 1-2: 突破 20 MA
     pass_break_ma20 = True
     if enable_break_ma20:
-        if pd.notna(curr['MA20']) and pd.notna(prev['MA20']):
-            if (close > curr['MA20'] and prev_close <= prev['MA20']):
-                tags.append("突破20MA")
-            else:
-                pass_break_ma20 = False
+        if (close > curr['MA20'] and prev_close <= prev['MA20']):
+            tags.append("突破20MA")
         else:
             pass_break_ma20 = False
 
-    # 條件 1-3: 突破 60 MA (當期收盤 > 60MA 且 前一期 <= 60MA)
+    # 條件 1-3: 突破 60 MA
     pass_break_ma60 = True
     if enable_break_ma60:
-        if pd.notna(curr['MA60']) and pd.notna(prev['MA60']):
-            if (close > curr['MA60'] and prev_close <= prev['MA60']):
-                tags.append("突破60MA")
-            else:
-                pass_break_ma60 = False
+        if (close > curr['MA60'] and prev_close <= prev['MA60']):
+            tags.append("突破60MA")
         else:
             pass_break_ma60 = False
             
     # 條件 1-4: 量均線多頭
     pass_vma = True
     if enable_vma_trend:
-        if pd.notna(curr['VMA34']) and (curr['VMA5'] > curr['VMA13'] > curr['VMA34']):
+        if (curr['VMA5'] > curr['VMA13'] > curr['VMA34']):
             tags.append("量均多頭")
         else:
             pass_vma = False
@@ -351,7 +350,7 @@ for item in current_db:
     # 條件 2: 帶量突破
     pass_vol = True
     if enable_vol_breakout:
-        if pd.notna(prev['VMA5']) and prev['VMA5'] > 0 and volume >= (prev['VMA5'] * vol_mult):
+        if prev['VMA5'] > 0 and volume >= (prev['VMA5'] * vol_mult):
             tags.append(f"量增 {vol_mult}x")
         else:
             pass_vol = False
@@ -371,13 +370,13 @@ for item in current_db:
     # 快捷頁籤判定
     pass_quick = True
     if quick_filter == "⚡ 突破20/60MA":
-        cond_20 = (pd.notna(curr['MA20']) and close > curr['MA20'] and prev_close <= prev['MA20'])
-        cond_60 = (pd.notna(curr['MA60']) and close > curr['MA60'] and prev_close <= prev['MA60'])
+        cond_20 = (close > curr['MA20'] and prev_close <= prev['MA20'])
+        cond_60 = (close > curr['MA60'] and prev_close <= prev['MA60'])
         pass_quick = (cond_20 or cond_60)
     elif quick_filter == "🔥 價量齊揚":
-        pass_quick = (pct_change > 2.0 and volume > prev['VMA5'])
+        pass_quick = (pct_change > 1.5 and volume > prev['VMA5'])
     elif quick_filter == "🚀 均線多頭+爆量":
-        pass_quick = (pd.notna(curr['MA21']) and close > curr['MA8'] > curr['MA21'] and volume >= prev['VMA5'] * 1.5)
+        pass_quick = (close > curr['MA8'] > curr['MA21'] and volume >= prev['VMA5'] * 1.3)
     elif quick_filter == "🏆 創20日新高":
         if len(df) > 20:
             pass_quick = (close >= df['Close'].iloc[-21:-1].max())
@@ -413,9 +412,9 @@ with col_export:
             type="primary"
         )
 
-if df_result.empty:
+if df_result.empty and len(raw_stock_data) > 0:
     st.info(f"💡 在【{selected_timeframe}】與當前設定下未找到符合個股，可勾選放寬部分條件或切換頁籤。")
-else:
+elif not df_result.empty:
     st.write(f"📊 **找到 {len(df_result)} 檔符合標的（資料來源：{data_source} ｜ 週期：{selected_timeframe}）：**")
     st.dataframe(
         df_result.style.format({
@@ -438,10 +437,10 @@ else:
     if selected_code and selected_code in raw_stock_data:
         df_k = raw_stock_data[selected_code].copy()
         
-        df_k['MA8'] = df_k['Close'].rolling(8).mean()
-        df_k['MA20'] = df_k['Close'].rolling(20).mean()
-        df_k['MA60'] = df_k['Close'].rolling(60).mean()
-        df_k['VMA5'] = df_k['Volume'].rolling(5).mean()
+        df_k['MA8'] = df_k['Close'].rolling(8, min_periods=1).mean()
+        df_k['MA20'] = df_k['Close'].rolling(20, min_periods=1).mean()
+        df_k['MA60'] = df_k['Close'].rolling(60, min_periods=1).mean()
+        df_k['VMA5'] = df_k['Volume'].rolling(5, min_periods=1).mean()
         
         df_k = df_k.iloc[-100:]
         
