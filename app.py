@@ -82,13 +82,18 @@ US_STOCK_DATABASE = [
 
 
 # ==========================================
-# 3. 數據引擎 (全面支援 MultiIndex 格式修復)
+# 3. 數據引擎 (支援年K合成與 MultiIndex 修正)
 # ==========================================
 @st.cache_data(ttl=600, show_spinner=False)
 def get_stock_data_source(ticker_list, data_source="yfinance", interval="1d", period="2y"):
     result = {}
     if not ticker_list:
         return result
+
+    # 若請求為年K，以長期月K資料進行 Resample 合成
+    is_yearly = (interval == "1y" or interval == "YE")
+    fetch_interval = "1mo" if is_yearly else interval
+    fetch_period = "max" if is_yearly else period
 
     if data_source == "twstock" and interval == "1d":
         now = datetime.now()
@@ -117,8 +122,8 @@ def get_stock_data_source(ticker_list, data_source="yfinance", interval="1d", pe
         try:
             data = yf.download(
                 tickers=ticker_list,
-                period=period,
-                interval=interval,
+                period=fetch_period,
+                interval=fetch_interval,
                 auto_adjust=False,
                 threads=True
             )
@@ -126,17 +131,26 @@ def get_stock_data_source(ticker_list, data_source="yfinance", interval="1d", pe
             if data.empty:
                 return {}
 
-            # 處理單檔與多檔股票的欄位結構
             if len(ticker_list) == 1:
                 t = ticker_list[0]
                 df = data.copy()
                 if isinstance(df.columns, pd.MultiIndex):
-                    # 若為 MultiIndex，將首層或指定 Ticker 層級取出
                     if t in df.columns.levels[1]:
                         df = df.xs(t, axis=1, level=1)
                     else:
                         df.columns = df.columns.get_level_values(0)
                 df = df.dropna(how='all')
+                
+                # 年K合成
+                if is_yearly and not df.empty and 'Close' in df.columns:
+                    df = df.resample('YE').agg({
+                        'Open': 'first',
+                        'High': 'max',
+                        'Low': 'min',
+                        'Close': 'last',
+                        'Volume': 'sum'
+                    }).dropna()
+                    
                 if not df.empty and 'Close' in df.columns:
                     result[t] = df
             else:
@@ -149,6 +163,15 @@ def get_stock_data_source(ticker_list, data_source="yfinance", interval="1d", pe
                                 df = data[t].dropna(how='all')
                         else:
                             df = data.dropna(how='all')
+                            
+                        if is_yearly and not df.empty and 'Close' in df.columns:
+                            df = df.resample('YE').agg({
+                                'Open': 'first',
+                                'High': 'max',
+                                'Low': 'min',
+                                'Close': 'last',
+                                'Volume': 'sum'
+                            }).dropna()
                             
                         if not df.empty and 'Close' in df.columns:
                             result[t] = df
@@ -371,7 +394,7 @@ for item in current_db:
         continue
         
     df = raw_stock_data[code].copy()
-    if len(df) < 10 or 'Close' not in df.columns:
+    if len(df) < 5 or 'Close' not in df.columns:
         continue
         
     # 計算均線 (MA8, MA21, MA55)
@@ -556,7 +579,7 @@ elif not df_result.empty:
     st.divider()
 
     # ------------------------------------------
-    # Section 5: Plotly 互動式 K 線與多週期切換系統
+    # Section 5: Plotly 互動式 K 線與多週期切換系統 (支援年K)
     # ------------------------------------------
     st.subheader("📈 個股技術分析與指標圖表")
     
@@ -578,7 +601,7 @@ elif not df_result.empty:
         selected_code = selected_display.split(" ")[0]
         st.session_state["selected_stock_code"] = selected_code
 
-    # 多週期映射表
+    # 多週期映射表（年K以 1y 代號交由引擎自動合成）
     chart_tf_map = {
         "5分K": ("5m", "5d"),
         "15分K": ("15m", "1mo"),
@@ -587,14 +610,14 @@ elif not df_result.empty:
         "日K": ("1d", "1y"),
         "週K": ("1wk", "2y"),
         "月K": ("1mo", "5y"),
-        "年K": ("1y", "10y")
+        "年K": ("1y", "max")
     }
     
     with col_tf_sel:
         chart_tf = st.radio(
             "⏱️ 圖表時間週期切換：",
             list(chart_tf_map.keys()),
-            index=4,  # 預設為 日K
+            index=4,
             horizontal=True
         )
         
@@ -605,7 +628,7 @@ elif not df_result.empty:
     if selected_code and selected_code in chart_stock_dict:
         df_k = chart_stock_dict[selected_code].copy()
         
-        if not df_k.empty and 'Close' in df_k.columns and len(df_k) >= 5:
+        if not df_k.empty and 'Close' in df_k.columns and len(df_k) >= 2:
             # 1. 價格均線 (MA8, MA21, MA55)
             df_k['MA8'] = df_k['Close'].rolling(8, min_periods=1).mean()
             df_k['MA21'] = df_k['Close'].rolling(21, min_periods=1).mean()
@@ -755,4 +778,4 @@ elif not df_result.empty:
             
             st.plotly_chart(fig_k, use_container_width=True)
         else:
-            st.warning("⚠️ 該分時週期暫無足夠歷史數據，請嘗試切換至其他週期檢視。")
+            st.warning("⚠️ 該週期歷史數據筆數不足，請嘗試切換至其他週期檢視。")
