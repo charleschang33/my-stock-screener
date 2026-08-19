@@ -252,7 +252,7 @@ def show_fear_greed_detail():
 st.markdown("<div class='main-header'>🧠 AI 投資資訊站 | 專屬量化選股儀表板</div>", unsafe_allow_html=True)
 
 # ------------------------------------------
-# Section 1: 頂部三大儀表圖
+# Section 1: 頂部三大儀表圖 (附點擊查看按鈕)
 # ------------------------------------------
 col1, col2, col3 = st.columns(3)
 
@@ -284,6 +284,7 @@ st.divider()
 # ------------------------------------------
 st.sidebar.header("⚙️ 篩選條件設定")
 
+# 1. 市場與資料源選擇
 market_choice = st.sidebar.radio("選擇市場", ["台股 (TW)", "美股 (US)"], index=0)
 
 if "台股" in market_choice:
@@ -509,7 +510,7 @@ with col_export:
             df_result.to_excel(writer, index=False, sheet_name='篩選結果')
         st.download_button(
             label="📥 下載 Excel",
-            data=buffer.getvalue>,
+            data=buffer.getvalue(),
             file_name=f"Stock_Result_{pd.Timestamp.now().strftime('%Y%m%d_%H%M')}.xlsx",
             mime="application/vnd.ms-excel",
             type="primary"
@@ -669,9 +670,6 @@ elif not df_result.empty:
             xaxis_rangeslider_visible=False,
             margin=dict(l=10, r=10, t=30, b=10),
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-        )
-        
-        st.plotly_chart(fig_k, use_container_width=True))
         )
         
         st.plotly_chart(fig_k, use_container_width=True)
