@@ -371,12 +371,10 @@ for item in current_db:
     if len(df) < 10:
         continue
         
-    # 計算均線
+    # 計算均線 (MA8, MA21, MA55)
     df['MA8'] = df['Close'].rolling(8, min_periods=1).mean()
-    df['MA20'] = df['Close'].rolling(20, min_periods=1).mean()
     df['MA21'] = df['Close'].rolling(21, min_periods=1).mean()
     df['MA55'] = df['Close'].rolling(55, min_periods=1).mean()
-    df['MA60'] = df['Close'].rolling(60, min_periods=1).mean()
     
     # 計算量均線
     df['VMA5'] = df['Volume'].rolling(5, min_periods=1).mean()
@@ -428,7 +426,7 @@ for item in current_db:
     if is_three_bar_breakdown:
         tags.append("三盤跌破")
 
-    # 條件 2: 均線多頭排列
+    # 條件 2: 均線多頭排列 (MA8 > MA21 > MA55)
     is_ma_aligned = (curr['MA8'] > curr['MA21'] > curr['MA55'])
     pass_ma = True
     if enable_ma_trend:
@@ -562,7 +560,6 @@ elif not df_result.empty:
     # ------------------------------------------
     st.subheader("📈 個股技術分析與指標圖表")
     
-    # 下拉選單與表格點擊保持雙向同步
     stock_options = df_result["代號"].tolist()
     default_index = 0
     if st.session_state["selected_stock_code"] in stock_options:
@@ -578,12 +575,10 @@ elif not df_result.empty:
     if selected_code and selected_code in raw_stock_data:
         df_k = raw_stock_data[selected_code].copy()
         
-        # 1. 價格均線 (MA8, MA20, MA21, MA55, MA60)
+        # 1. 價格均線 (保留 MA8, MA21, MA55)
         df_k['MA8'] = df_k['Close'].rolling(8, min_periods=1).mean()
-        df_k['MA20'] = df_k['Close'].rolling(20, min_periods=1).mean()
         df_k['MA21'] = df_k['Close'].rolling(21, min_periods=1).mean()
         df_k['MA55'] = df_k['Close'].rolling(55, min_periods=1).mean()
-        df_k['MA60'] = df_k['Close'].rolling(60, min_periods=1).mean()
         
         # 2. 成交量均線 (VMA5, VMA20)
         df_k['VMA5'] = df_k['Volume'].rolling(5, min_periods=1).mean()
@@ -607,17 +602,13 @@ elif not df_result.empty:
         # 取最近 100 根 K 棒展示
         df_k = df_k.iloc[-100:]
         
-        # 建立三層子圖：[K線均線, 成交量, KD指標]
+        # 建立三層子圖（主圖不放冗長標題，保持畫面簡潔乾淨）
         fig_k = make_subplots(
             rows=3, cols=1,
             shared_xaxes=True,
-            vertical_spacing=0.03,
-            row_heights=[0.55, 0.22, 0.23],
-            subplot_titles=(
-                f"{selected_code} ({selected_timeframe}) K線與均線 (MA8 / 20 / 21 / 55 / 60)",
-                "成交量與量均線 (VMA5 / VMA20)",
-                "KD 指標 (9, 3, 3)"
-            )
+            vertical_spacing=0.04,
+            row_heights=[0.58, 0.21, 0.21],
+            subplot_titles=("", "成交量 (VMA5 / VMA20)", "KD 指標 (9, 3, 3)")
         )
         
         # 1. K線圖主圖
@@ -635,12 +626,10 @@ elif not df_result.empty:
             row=1, col=1
         )
         
-        # 均線疊加
-        fig_k.add_trace(go.Scatter(x=df_k.index, y=df_k['MA8'], mode='lines', name='MA8', line=dict(color='#3b82f6', width=1.2)), row=1, col=1)
-        fig_k.add_trace(go.Scatter(x=df_k.index, y=df_k['MA20'], mode='lines', name='20MA (月線)', line=dict(color='#f59e0b', width=1.8)), row=1, col=1)
-        fig_k.add_trace(go.Scatter(x=df_k.index, y=df_k['MA21'], mode='lines', name='MA21', line=dict(color='#ec4899', width=1.2)), row=1, col=1)
+        # 均線疊加 (MA8, MA21, MA55)
+        fig_k.add_trace(go.Scatter(x=df_k.index, y=df_k['MA8'], mode='lines', name='MA8', line=dict(color='#3b82f6', width=1.3)), row=1, col=1)
+        fig_k.add_trace(go.Scatter(x=df_k.index, y=df_k['MA21'], mode='lines', name='MA21', line=dict(color='#ec4899', width=1.5)), row=1, col=1)
         fig_k.add_trace(go.Scatter(x=df_k.index, y=df_k['MA55'], mode='lines', name='MA55', line=dict(color='#8b5cf6', width=1.8)), row=1, col=1)
-        fig_k.add_trace(go.Scatter(x=df_k.index, y=df_k['MA60'], mode='lines', name='60MA (季線)', line=dict(color='#64748b', width=2.0)), row=1, col=1)
         
         # 2. 成交量副圖
         v_colors = ['#ef4444' if c >= o else '#22c55e' for c, o in zip(df_k['Close'], df_k['Open'])]
@@ -657,19 +646,31 @@ elif not df_result.empty:
             row=2, col=1
         )
         
-        # 3. KD 指標副圖
-        fig_k.add_trace(go.Scatter(x=df_k.index, y=df_k['K'], mode='lines', name='K值 (9,3,3)', line=dict(color='#f59e0b', width=1.5)), row=3, col=1)
-        fig_k.add_trace(go.Scatter(x=df_k.index, y=df_k['D'], mode='lines', name='D值 (9,3,3)', line=dict(color='#3b82f6', width=1.5)), row=3, col=1)
+        # 3. KD 指標副圖 (隱藏上方重疊圖例，避免擠占版面)
+        fig_k.add_trace(
+            go.Scatter(x=df_k.index, y=df_k['K'], mode='lines', name='K值', line=dict(color='#f59e0b', width=1.5), showlegend=False),
+            row=3, col=1
+        )
+        fig_k.add_trace(
+            go.Scatter(x=df_k.index, y=df_k['D'], mode='lines', name='D值', line=dict(color='#3b82f6', width=1.5), showlegend=False),
+            row=3, col=1
+        )
         
-        # KD 超買超賣參考水平線
+        # KD 超買(80)超賣(20)參考線
         fig_k.add_hline(y=80, line_dash="dot", line_color="#ef4444", line_width=1, row=3, col=1)
         fig_k.add_hline(y=20, line_dash="dot", line_color="#22c55e", line_width=1, row=3, col=1)
         
         fig_k.update_layout(
-            height=700,
+            height=680,
             xaxis_rangeslider_visible=False,
-            margin=dict(l=10, r=10, t=30, b=10),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+            margin=dict(l=10, r=10, t=25, b=10),
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.01,
+                xanchor="right",
+                x=1
+            )
         )
         
         st.plotly_chart(fig_k, use_container_width=True)
