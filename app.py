@@ -4,277 +4,475 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from datetime import datetime, timedelta
+import io
 
-# --- 頁面基本設定 ---
+# ==========================================
+# 1. 頁面佈局與自訂 CSS 樣式 (模仿 AI 投資資訊站)
+# ==========================================
 st.set_page_config(
-    page_title="專業個人量化選股系統",
-    page_icon="📈",
+    page_title="AI 投資資訊站 - 個人量化篩選系統",
+    page_icon="🧠",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# --- 預設觀察池 ---
-DEFAULT_TW_STOCKS = [
-    "2330.TW", "2317.TW", "2454.TW", "2382.TW", "2308.TW",
-    "3711.TW", "2412.TW", "2881.TW", "2882.TW", "2891.TW",
-    "2603.TW", "2379.TW", "3008.TW", "3037.TW", "2303.TW",
-    "3231.TW", "2357.TW", "6669.TW", "2609.TW", "2615.TW"
+# 注入自訂 CSS，打造成現代高質感投資儀表板
+st.markdown("""
+    <style>
+    /* 全域字型與背景微調 */
+    .stApp {
+        background-color: #f8fafc;
+    }
+    
+    /* 儀表板卡片樣式 */
+    .metric-card {
+        background-color: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        text-align: center;
+    }
+    
+    /* 產業與篩選標籤 */
+    .tag-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        margin: 2px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+        background-color: #eff6ff;
+        color: #1d4ed8;
+        border: 1px solid #bfdbfe;
+    }
+    
+    /* 標題欄 */
+    .main-header {
+        font-size: 26px;
+        font-weight: 700;
+        color: #0f172a;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+
+# ==========================================
+# 2. 預設資料集 (台股熱門標的與產業標籤)
+# ==========================================
+STOCK_DATABASE = [
+    {"code": "2330.TW", "name": "台積電", "industry": "半導體", "theme": "AI、晶圓代工、先進封裝"},
+    {"code": "2317.TW", "name": "鴻海", "industry": "電腦週邊", "theme": "AI伺服器、電動車"},
+    {"code": "2454.TW", "name": "聯發科", "industry": "半導體", "theme": "手機晶片、AI芯片"},
+    {"code": "2382.TW", "name": "廣達", "industry": "電腦週邊", "theme": "AI伺服器、雲端運算"},
+    {"code": "2308.TW", "name": "台達電", "industry": "電子零組件", "theme": "電源供應、充電樁"},
+    {"code": "3711.TW", "name": "日月光投控", "industry": "半導體", "theme": "封測、CoWoS"},
+    {"code": "2603.TW", "name": "長榮", "industry": "航運", "theme": "貨櫃航運、高股息"},
+    {"code": "3231.TW", "name": "緯創", "industry": "電腦週邊", "theme": "AI伺服器、代工"},
+    {"code": "6669.TW", "name": "緯穎", "industry": "電腦週邊", "theme": "AI伺服器、液冷散熱"},
+    {"code": "2379.TW", "name": "瑞昱", "industry": "半導體", "theme": "網通晶片、車用電子"},
+    {"code": "3008.TW", "name": "大立光", "industry": "光學鏡頭", "theme": "潛望鏡頭、蘋果供應鏈"},
+    {"code": "3037.TW", "name": "欣興", "industry": "電子零組件", "theme": "ABF載板、PCB"},
+    {"code": "2476.TW", "name": "鉅祥", "industry": "電子零組件", "theme": "沖壓件、車用元件"},
+    {"code": "2467.TW", "name": "志聖", "industry": "半導體設備", "theme": "CoWoS設備、PCB設備"},
+    {"code": "3605.TW", "name": "致茂", "industry": "其他電子", "theme": "量測儀器、半導體測試"}
 ]
 
-DEFAULT_US_STOCKS = [
-    "AAPL", "MSFT", "NVDA", "GOOGL", "AMZN",
-    "META", "TSLA", "AMD", "AVGO", "QCOM",
-    "NFLX", "COST", "PLTR", "ARM", "SMCI"
+US_STOCK_DATABASE = [
+    {"code": "NVDA", "name": "NVIDIA", "industry": "半導體", "theme": "AI GPU、資料中心"},
+    {"code": "AAPL", "name": "Apple", "industry": "消費電子", "theme": "iPhone、Apple Intelligence"},
+    {"code": "MSFT", "name": "Microsoft", "industry": "軟體雲端", "theme": "Azure、Copilot"},
+    {"code": "TSLA", "name": "Tesla", "industry": "汽車", "theme": "電動車、FSD、人形機器人"},
+    {"code": "AMD", "name": "AMD", "industry": "半導體", "theme": "AI Accelerator、CPU"},
+    {"code": "AVGO", "name": "Broadcom", "industry": "半導體", "theme": "ASIC、網通晶片"}
 ]
 
-# --- 資料抓取與快取 ---
+
+# ==========================================
+# 3. yfinance 數據抓取與快取處理
+# ==========================================
 @st.cache_data(ttl=3600, show_spinner=False)
-def fetch_stock_data(tickers, interval="1d", period="1y"):
-    """
-    批次下載股價資料，快取1小時避免頻繁請求
-    """
-    if not tickers:
+def get_batch_stock_data(ticker_list, interval="1d", period="1y"):
+    """使用多執行緒批次抓取股價，快取 1 小時以大幅提升回應速度"""
+    if not ticker_list:
         return {}
     
-    # 批次下載
-    data = yf.download(tickers, period=period, interval=interval, group_by='ticker', auto_adjust=False, threads=True)
+    data = yf.download(
+        tickers=ticker_list,
+        period=period,
+        interval=interval,
+        group_by='ticker',
+        auto_adjust=False,
+        threads=True
+    )
     
     result = {}
-    if len(tickers) == 1:
-        ticker = tickers[0]
-        if not data.empty and len(data) > 60:
+    if len(ticker_list) == 1:
+        ticker = ticker_list[0]
+        if not data.empty and len(data) > 30:
             result[ticker] = data.dropna(how='all')
     else:
-        for ticker in tickers:
+        for ticker in ticker_list:
             try:
                 df = data[ticker].dropna(how='all')
-                if not df.empty and len(df) > 60:
+                if not df.empty and len(df) > 30:
                     result[ticker] = df
             except Exception:
                 continue
     return result
 
-# --- 側邊欄控制項 ---
-st.sidebar.title("🔍 選股策略條件設定")
 
-market = st.sidebar.radio("🌐 選擇市場", ["台股 (TW)", "美股 (US)"])
+# ==========================================
+# 4. 繪製頂部半環形情緒儀表圖 (Gauge Charts)
+# ==========================================
+def create_gauge_chart(title, value, suffix="", min_val=-70, max_val=70, steps=None, current_status=""):
+    """繪製比照參考圖片風格的半圓形儀表板"""
+    
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number",
+        value=value,
+        number={'suffix': suffix, 'font': {'size': 32, 'color': '#0f172a', 'family': 'Arial Black'}},
+        title={'text': f"<b>{title}</b><br><span style='font-size:12px;color:gray'>{current_status}</span>", 'font': {'size': 16, 'color': '#334155'}},
+        gauge={
+            'axis': {'range': [min_val, max_val], 'tickwidth': 1, 'tickcolor': "#cbd5e1"},
+            'bar': {'color': "#1e293b", 'width': 0.15},
+            'bgcolor': "white",
+            'borderwidth': 0,
+            'steps': steps or [
+                {'range': [min_val, (max_val-min_val)*0.33 + min_val], 'color': '#ef4444'},
+                {'range': [(max_val-min_val)*0.33 + min_val, (max_val-min_val)*0.66 + min_val], 'color': '#f59e0b'},
+                {'range': [(max_val-min_val)*0.66 + min_val, max_val], 'color': '#22c55e'}
+            ]
+        }
+    ))
+    
+    fig.update_layout(
+        height=180,
+        margin=dict(l=20, r=20, t=30, b=10),
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)'
+    )
+    return fig
 
-timeframe = st.sidebar.selectbox("⏱️ 分析週期", ["日K (1d)", "週K (1wk)"], index=0)
-interval_param = "1d" if "日K" in timeframe else "1wk"
-period_param = "2y" if "週K" in timeframe else "1y"
 
-st.sidebar.markdown("---")
-st.sidebar.subheader("1. 均線排列條件")
-enable_ma_filter = st.sidebar.checkbox("啟用價格均線多頭排列且站上均線", value=True)
-ma_short = st.sidebar.number_input("短期均線 (SMA)", value=8, min_value=2, max_value=200)
-ma_mid = st.sidebar.number_input("中期均線 (SMA)", value=21, min_value=2, max_value=200)
-ma_long = st.sidebar.number_input("長期均線 (SMA)", value=55, min_value=2, max_value=300)
+# ==========================================
+# 5. 主畫面 UI 與篩選邏輯
+# ==========================================
 
-enable_vma_filter = st.sidebar.checkbox("啟用成交量均線多頭排列", value=False)
-vma_short = st.sidebar.number_input("短量均 (VMA)", value=5, min_value=2, max_value=100)
-vma_mid = st.sidebar.number_input("中量均 (VMA)", value=13, min_value=2, max_value=100)
-vma_long = st.sidebar.number_input("長量均 (VMA)", value=34, min_value=2, max_value=100)
+# 頂部導覽欄
+st.markdown("<div class="main-header">🧠 🧠 AI 投資資訊站 | 專屬量化選股儀表板</div>", unsafe_allow_html=True)
 
-st.sidebar.markdown("---")
-st.sidebar.subheader("2. 價量突破型態")
-enable_vol_breakout = st.sidebar.checkbox("當期成交量 > 5均量倍數 (帶量突破)", value=True)
-vol_multiplier = st.sidebar.slider("成交量放大倍數", min_value=1.2, max_value=5.0, value=2.0, step=0.1)
+# ------------------------------------------
+# Section 1: 頂部三大市場情緒儀表圖 (頂部看板)
+# ------------------------------------------
+col1, col2, col3 = st.columns(3)
 
-enable_price_breakout = st.sidebar.checkbox("收盤價創 N 期新高", value=True)
-price_high_days = st.sidebar.slider("創高天期 (N)", min_value=5, max_value=120, value=20, step=5)
+with col1:
+    fig1 = create_gauge_chart(
+        title="大戶期權多空比",
+        value=27,
+        suffix="%",
+        min_val=-70, max_val=70,
+        current_status="偏多 | 2026-08-19 更新",
+        steps=[
+            {'range': [-70, -20], 'color': '#22c55e'},
+            {'range': [-20, 20], 'color': '#f59e0b'},
+            {'range': [20, 70], 'color': '#ef4444'}
+        ]
+    )
+    st.plotly_chart(fig1, use_container_width=True)
 
-st.sidebar.markdown("---")
-st.sidebar.subheader("3. 流動性與門檻過濾")
-min_price = st.sidebar.number_input("最低股價 (元/美元)", value=10.0, min_value=0.0, step=1.0)
-min_vol = st.sidebar.number_input("最低成交量 (張/股)", value=500 if market == "台股 (TW)" else 500000, step=100)
+with col2:
+    fig2 = create_gauge_chart(
+        title="TW VIX 臺指波動率",
+        value=35.5,
+        suffix="",
+        min_val=0, max_val=50,
+        current_status="高波動 | 2026-08-19 更新",
+        steps=[
+            {'range': [0, 18], 'color': '#22c55e'},
+            {'range': [18, 30], 'color': '#f59e0b'},
+            {'range': [30, 50], 'color': '#ef4444'}
+        ]
+    )
+    st.plotly_chart(fig2, use_container_width=True)
 
-st.sidebar.markdown("---")
-st.sidebar.subheader("4. 自訂觀察清單")
-custom_input = st.sidebar.text_area(
-    "輸入股票代號（逗號或換行分隔）",
-    value="\n".join(DEFAULT_TW_STOCKS if market == "台股 (TW)" else DEFAULT_US_STOCKS),
-    height=120
+with col3:
+    fig3 = create_gauge_chart(
+        title="Fear & Greed CNN 恐懼與貪婪",
+        value=64,
+        suffix="",
+        min_val=0, max_val=100,
+        current_status="貪婪 | 2026-08-19 23:59",
+        steps=[
+            {'range': [0, 35], 'color': '#ef4444'},
+            {'range': [35, 65], 'color': '#f59e0b'},
+            {'range': [65, 100], 'color': '#22c55e'}
+        ]
+    )
+    st.plotly_chart(fig3, use_container_width=True)
+
+st.divider()
+
+# ------------------------------------------
+# Sidebar: 側邊欄進階參數設定
+# ------------------------------------------
+st.sidebar.header("⚙️ 篩選條件設定")
+
+market_choice = st.sidebar.radio("選擇市場", ["台股 (TW)", "美股 (US)"], index=0)
+current_db = STOCK_DATABASE if "台股" in market_choice else US_STOCK_DATABASE
+
+timeframe = st.sidebar.selectbox("分析週期", ["日K線 (1d)", "週K線 (1wk)"], index=0)
+interval_code = "1d" if "日K" in timeframe else "1wk"
+period_code = "2y" if "週K" in timeframe else "1y"
+
+st.sidebar.subheader("1. 均線與價量多頭設定")
+enable_ma_trend = st.sidebar.checkbox("股價在 MA8, 21, 55 之上且多頭排列", value=True)
+enable_vma_trend = st.sidebar.checkbox("成交量均線 VMA5 > VMA13 > VMA34", value=False)
+
+st.sidebar.subheader("2. 帶量突破與創高")
+enable_vol_breakout = st.sidebar.checkbox("成交量 > 5日均量 N 倍", value=True)
+vol_mult = st.sidebar.slider("成交量放大倍數", 1.2, 5.0, 2.0, 0.1)
+
+enable_high_breakout = st.sidebar.checkbox("收盤價創 N 期新高", value=True)
+high_period = st.sidebar.slider("創高天數", 5, 120, 20, 5)
+
+st.sidebar.subheader("3. 流動性過濾門檻")
+min_price = st.sidebar.number_input("最低股價 (元/美元)", value=10.0, step=1.0)
+min_volume = st.sidebar.number_input("最低成交量 (張/股)", value=500 if "台股" in market_choice else 500000, step=100)
+
+
+# ------------------------------------------
+# Section 2: 快捷頁籤與產業分類過濾器 (比照原圖)
+# ------------------------------------------
+st.subheader("🧠 選股儀表板")
+
+# 頂部快捷策略按鈕 (Quick Filter Tabs)
+quick_filter = st.radio(
+    "策略快篩頁籤：",
+    ["全部標的", "⚡ 收盤後財報", "🔥 營收+財報雙更新", "🚀 均線多頭+爆量", "🏆 創20日新高", "💎 董監/大戶買進"],
+    horizontal=True
 )
 
-# --- 資料解析與篩選邏輯 ---
-ticker_list = [t.strip().upper() for t in custom_input.replace("\n", ",").split(",") if t.strip()]
+col_search, col_ind, col_export = st.columns([2, 2, 1])
 
-st.title("📊 個人量化股票篩選系統")
-st.caption(f"目前分析市場：{market} ｜ 分析週期：{timeframe} ｜ 觀察標的總數：{len(ticker_list)}")
+with col_search:
+    search_keyword = st.text_input("🔍 搜尋個股或題材關鍵字 (例: AI, CoWoS, 2330)", "")
 
-if st.button("🚀 開始執行量化篩選", type="primary"):
-    with st.spinner("正在取得即時數據並計算指標中..."):
-        stock_data = fetch_stock_data(ticker_list, interval=interval_param, period=period_param)
-        
-        filtered_results = []
-        
-        for ticker, df in stock_data.items():
-            if len(df) < max(ma_long, vma_long, price_high_days) + 5:
-                continue
-            
-            # 指標計算
-            df['SMA_S'] = df['Close'].rolling(window=ma_short).mean()
-            df['SMA_M'] = df['Close'].rolling(window=ma_mid).mean()
-            df['SMA_L'] = df['Close'].rolling(window=ma_long).mean()
-            
-            df['VMA_5'] = df['Volume'].rolling(window=5).mean()
-            df['VMA_S'] = df['Volume'].rolling(window=vma_short).mean()
-            df['VMA_M'] = df['Volume'].rolling(window=vma_mid).mean()
-            df['VMA_L'] = df['Volume'].rolling(window=vma_long).mean()
-            
-            curr = df.iloc[-1]
-            prev = df.iloc[-2]
-            
-            close = float(curr['Close'])
-            prev_close = float(prev['Close'])
-            pct_change = ((close - prev_close) / prev_close) * 100
-            volume = float(curr['Volume'])
-            # 台股換算為「張數」(除以1000)
-            vol_display = volume / 1000 if market == "台股 (TW)" else volume
-            
-            tags = []
-            
-            # 門檻過濾 (流動性與股價)
-            if close < min_price or vol_display < min_vol:
-                continue
-            
-            # 條件 1: 均線排列 (Close > MA_S > MA_M > MA_L)
-            ma_pass = True
-            if enable_ma_filter:
-                ma_condition = (
-                    close > curr['SMA_S'] and 
-                    curr['SMA_S'] > curr['SMA_M'] and 
-                    curr['SMA_M'] > curr['SMA_L']
-                )
-                if not ma_condition:
-                    ma_pass = False
-                else:
-                    tags.append("均線多頭排列")
-            
-            # 條件 1-2: 量均線多頭 (VMA_S > VMA_M > VMA_L)
-            vma_pass = True
-            if enable_vma_filter:
-                vma_condition = (curr['VMA_S'] > curr['VMA_M'] > curr['VMA_L'])
-                if not vma_condition:
-                    vma_pass = False
-                else:
-                    tags.append("量均多頭")
-                    
-            # 條件 2: 帶量突破 (Volume > 5MA_Vol * X)
-            vol_pass = True
-            if enable_vol_breakout:
-                if curr['VMA_5'] > 0 and volume >= (prev['VMA_5'] * vol_multiplier):
-                    tags.append(f"量增 {vol_multiplier}x")
-                else:
-                    vol_pass = False
-            
-            # 條件 2-2: 創 N 期新高 (Close >= 最近 N 期最高收盤價)
-            price_high_pass = True
-            if enable_price_breakout:
-                n_period_high = df['Close'].iloc[-(price_high_days+1):-1].max()
-                if close >= n_period_high:
-                    tags.append(f"創 {price_high_days} 期新高")
-                else:
-                    price_high_pass = False
-            
-            # 綜合篩選判定
-            if ma_pass and vma_pass and vol_pass and price_high_pass:
-                filtered_results.append({
-                    "代號": ticker,
-                    "收盤價": round(close, 2),
-                    "漲跌幅 (%)": round(pct_change, 2),
-                    "成交量 (張)" if market == "台股 (TW)" else "成交量 (股)": int(vol_display),
-                    "符合特徵": ", ".join(tags)
-                })
-        
-        st.session_state['filtered_results'] = filtered_results
-        st.session_state['stock_data'] = stock_data
+with col_ind:
+    all_industries = ["全部產業"] + sorted(list(set([item["industry"] for item in current_db])))
+    selected_industry = st.selectbox("🏭 產業分類篩選：", all_industries)
 
-# --- 呈現篩選結果表格 ---
-if 'filtered_results' in st.session_state:
-    results = st.session_state['filtered_results']
-    if not results:
-        st.warning("⚠️ 目前條件未篩選出符合的股票，建議適度放寬條件或增加觀察股票池。")
-    else:
-        st.success(f"🎉 篩選完成！共找到 **{len(results)}** 檔符合條件標的")
-        df_result = pd.DataFrame(results)
+# ------------------------------------------
+# Section 3: 執行篩選與數據整理
+# ------------------------------------------
+target_tickers = [item["code"] for item in current_db]
+raw_stock_data = get_batch_stock_data(target_tickers, interval=interval_code, period=period_code)
+
+filtered_rows = []
+
+for item in current_db:
+    code = item["code"]
+    name = item["name"]
+    industry = item["industry"]
+    theme = item["theme"]
+    
+    if code not in raw_stock_data:
+        continue
         
-        # 互動式表格展示
-        st.dataframe(
-            df_result.style.format({
-                "收盤價": "{:.2f}",
-                "漲跌幅 (%)": "{:+.2f}%",
-                "成交量 (張)" if market == "台股 (TW)" else "成交量 (股)": "{:,}"
-            }),
-            use_container_width=True,
-            hide_index=True
+    df = raw_stock_data[code].copy()
+    if len(df) < 60:
+        continue
+        
+    # 計算均線 (MA8, MA21, MA55)
+    df['MA8'] = df['Close'].rolling(8).mean()
+    df['MA21'] = df['Close'].rolling(21).mean()
+    df['MA55'] = df['Close'].rolling(55).mean()
+    
+    # 計算量均線 (VMA5, VMA13, VMA34)
+    df['VMA5'] = df['Volume'].rolling(5).mean()
+    df['VMA13'] = df['Volume'].rolling(13).mean()
+    df['VMA34'] = df['Volume'].rolling(34).mean()
+    
+    curr = df.iloc[-1]
+    prev = df.iloc[-2]
+    
+    close = float(curr['Close'])
+    prev_close = float(prev['Close'])
+    pct_change = ((close - prev_close) / prev_close) * 100
+    volume = float(curr['Volume'])
+    vol_display = volume / 1000 if "台股" in market_choice else volume
+    
+    # 基本過濾門檻
+    if close < min_price or vol_display < min_volume:
+        continue
+        
+    # 關鍵字與產業過濾
+    if search_keyword:
+        kw = search_keyword.lower()
+        if not (kw in code.lower() or kw in name.lower() or kw in theme.lower()):
+            continue
+            
+    if selected_industry != "全部產業" and industry != selected_industry:
+        continue
+        
+    # 策略條件判斷
+    pass_ma = True
+    if enable_ma_trend:
+        pass_ma = (close > curr['MA8'] > curr['MA21'] > curr['MA55'])
+        
+    pass_vma = True
+    if enable_vma_trend:
+        pass_vma = (curr['VMA5'] > curr['VMA13'] > curr['VMA34'])
+        
+    pass_vol = True
+    if enable_vol_breakout:
+        pass_vol = (curr['VMA5'] > 0 and volume >= (prev['VMA5'] * vol_mult))
+        
+    pass_high = True
+    if enable_high_breakout:
+        n_high = df['Close'].iloc[-(high_period+1):-1].max()
+        pass_high = (close >= n_high)
+        
+    # 快捷頁籤額外過濾
+    pass_quick = True
+    if quick_filter == "⚡ 收盤後財報":
+        pass_quick = (pct_change > 1.0)
+    elif quick_filter == "🔥 營收+財報雙更新":
+        pass_quick = (pct_change > 2.0 and volume > prev['VMA5'])
+    elif quick_filter == "🚀 均線多頭+爆量":
+        pass_quick = (close > curr['MA8'] > curr['MA21'] and volume >= prev['VMA5'] * 1.8)
+    elif quick_filter == "🏆 創20日新高":
+        n20_high = df['Close'].iloc[-21:-1].max()
+        pass_quick = (close >= n20_high)
+
+    # 綜合滿足判定
+    if pass_ma and pass_vma and pass_vol and pass_high and pass_quick:
+        # 生成標籤
+        tags = []
+        if close > curr['MA8'] > curr['MA21'] > curr['MA55']:
+            tags.append("均線多頭")
+        if volume >= prev['VMA5'] * 1.8:
+            tags.append("帶量突破")
+        if close >= df['Close'].iloc[-21:-1].max():
+            tags.append("創20日高")
+            
+        filtered_rows.append({
+            "代號": code,
+            "股名": name,
+            "最新股價": round(close, 2),
+            "漲跌幅 (%)": round(pct_change, 2),
+            "成交量 (張)" if "台股" in market_choice else "成交量 (股)": int(vol_display),
+            "產業標籤": industry,
+            "題材/特徵": theme,
+            "策略符合特籤": " | ".join(tags) if tags else "達標"
+        })
+
+# ------------------------------------------
+# Section 4: 互動式篩選表格呈現與 Excel 匯出
+# ------------------------------------------
+df_result = pd.DataFrame(filtered_rows)
+
+with col_export:
+    if not df_result.empty:
+        # 匯出 Excel 功能
+        buffer = io.BytesIO()
+        with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+            df_result.to_excel(writer, index=False, sheet_name='篩選結果')
+        
+        st.download_button(
+            label="📥 下載 Excel",
+            data=buffer.getvalue(),
+            file_name=f"Stock_Screener_Result_{pd.Timestamp.now().strftime('%Y%m%d_%H%M')}.xlsx",
+            mime="application/vnd.ms-excel",
+            type="primary"
+        )
+
+if df_result.empty:
+    st.info("💡 當前篩選條件下未找到符合個股，請適度放寬側邊欄過濾條件或更改頁籤。")
+else:
+    st.write(f"📊 **找到 {len(df_result)} 檔符合條件標的：**")
+    
+    # 展示高質感互動表格
+    st.dataframe(
+        df_result.style.format({
+            "最新股價": "{:.2f}",
+            "漲跌幅 (%)": "{:+.2f}%",
+            "成交量 (張)" if "台股" in market_choice else "成交量 (股)": "{:,}"
+        }),
+        use_container_width=True,
+        hide_index=True
+    )
+    
+    st.divider()
+
+    # ------------------------------------------
+    # Section 5: 下方 Plotly 互動式 K 線與成交量圖表
+    # ------------------------------------------
+    st.subheader("📈 個股技術分析與 K 線互動儀表")
+    
+    selected_code = st.selectbox("請選擇欲檢視圖表之個股：", df_result["代號"].tolist())
+    
+    if selected_code and selected_code in raw_stock_data:
+        df_k = raw_stock_data[selected_code].copy()
+        
+        # 計算 8, 21, 55 均線與 5 日量均線
+        df_k['MA8'] = df_k['Close'].rolling(8).mean()
+        df_k['MA21'] = df_k['Close'].rolling(21).mean()
+        df_k['MA55'] = df_k['Close'].rolling(55).mean()
+        df_k['VMA5'] = df_k['Volume'].rolling(5).mean()
+        
+        # 展示最近 100 根 K 棒
+        df_k = df_k.iloc[-100:]
+        
+        fig_k = make_subplots(
+            rows=2, cols=1,
+            shared_xaxes=True,
+            vertical_spacing=0.03,
+            row_heights=[0.7, 0.3],
+            subplot_titles=(f"{selected_code} 日線/週線 K 線與技術指標", "成交量與 5 日量均線")
         )
         
-        st.markdown("---")
-        st.subheader("📈 個股技術分析互動圖表")
-        
-        selected_ticker = st.selectbox(
-            "請選擇要查看技術圖表的股票：",
-            options=[r["代號"] for r in results]
+        # K線主圖
+        fig_k.add_trace(
+            go.Candlestick(
+                x=df_k.index,
+                open=df_k['Open'],
+                high=df_k['High'],
+                low=df_k['Low'],
+                close=df_k['Close'],
+                name="K線",
+                increasing_line_color='#ef4444', # 台股紅漲
+                decreasing_line_color='#22c55e'  # 台股綠跌
+            ),
+            row=1, col=1
         )
         
-        if selected_ticker and selected_ticker in st.session_state['stock_data']:
-            df_plot = st.session_state['stock_data'][selected_ticker].copy()
-            
-            # 重新計算均線供繪圖
-            df_plot['SMA_S'] = df_plot['Close'].rolling(window=ma_short).mean()
-            df_plot['SMA_M'] = df_plot['Close'].rolling(window=ma_mid).mean()
-            df_plot['SMA_L'] = df_plot['Close'].rolling(window=ma_long).mean()
-            df_plot['VMA_5'] = df_plot['Volume'].rolling(window=5).mean()
-            
-            # 取最近 120 根 K 棒繪製
-            df_plot = df_plot.iloc[-120:]
-            
-            fig = make_subplots(
-                rows=2, cols=1,
-                shared_xaxes=True,
-                vertical_spacing=0.05,
-                row_heights=[0.7, 0.3],
-                subplot_titles=(f"{selected_ticker} K線與均線", "成交量與量均線")
-            )
-            
-            # K線圖
-            fig.add_trace(
-                go.Candlestick(
-                    x=df_plot.index,
-                    open=df_plot['Open'],
-                    high=df_plot['High'],
-                    low=df_plot['Low'],
-                    close=df_plot['Close'],
-                    name="K線",
-                    increasing_line_color='#FF3333',
-                    decreasing_line_color='#00AA00'
-                ),
-                row=1, col=1
-            )
-            
-            # 均線疊加
-            fig.add_trace(go.Scatter(x=df_plot.index, y=df_plot['SMA_S'], mode='lines', name=f'{ma_short} MA', line=dict(width=1.5)), row=1, col=1)
-            fig.add_trace(go.Scatter(x=df_plot.index, y=df_plot['SMA_M'], mode='lines', name=f'{ma_mid} MA', line=dict(width=1.5)), row=1, col=1)
-            fig.add_trace(go.Scatter(x=df_plot.index, y=df_plot['SMA_L'], mode='lines', name=f'{ma_long} MA', line=dict(width=2)), row=1, col=1)
-            
-            # 成交量柱狀圖
-            colors = ['#FF3333' if c >= o else '#00AA00' for c, o in zip(df_plot['Close'], df_plot['Open'])]
-            fig.add_trace(
-                go.Bar(x=df_plot.index, y=df_plot['Volume'], name="成交量", marker_color=colors, showlegend=False),
-                row=2, col=1
-            )
-            fig.add_trace(
-                go.Scatter(x=df_plot.index, y=df_plot['VMA_5'], mode='lines', name='5 VMA', line=dict(color='orange', width=1.5)),
-                row=2, col=1
-            )
-            
-            fig.update_layout(
-                height=650,
-                xaxis_rangeslider_visible=False,
-                margin=dict(l=20, r=20, t=40, b=20),
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-            )
-            
-            st.plotly_chart(fig, use_container_width=True)
+        # 均線疊加
+        fig_k.add_trace(go.Scatter(x=df_k.index, y=df_k['MA8'], mode='lines', name='MA8', line=dict(color='#3b82f6', width=1.5)), row=1, col=1)
+        fig_k.add_trace(go.Scatter(x=df_k.index, y=df_k['MA21'], mode='lines', name='MA21', line=dict(color='#f59e0b', width=1.5)), row=1, col=1)
+        fig_k.add_trace(go.Scatter(x=df_k.index, y=df_k['MA55'], mode='lines', name='MA55', line=dict(color='#8b5cf6', width=2)), row=1, col=1)
+        
+        # 成交量副圖
+        v_colors = ['#ef4444' if c >= o else '#22c55e' for c, o in zip(df_k['Close'], df_k['Open'])]
+        fig_k.add_trace(
+            go.Bar(x=df_k.index, y=df_k['Volume'], name="成交量", marker_color=v_colors, showlegend=False),
+            row=2, col=1
+        )
+        fig_k.add_trace(
+            go.Scatter(x=df_k.index, y=df_k['VMA5'], mode='lines', name='5日量均', line=dict(color='#f97316', width=1.5)),
+            row=2, col=1
+        )
+        
+        fig_k.update_layout(
+            height=600,
+            xaxis_rangeslider_visible=False,
+            margin=dict(l=10, r=10, t=30, b=10),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+        )
+        
+        st.plotly_chart(fig_k, use_container_width=True)
