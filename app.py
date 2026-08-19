@@ -223,7 +223,6 @@ st.sidebar.subheader("2. 價量突破與創高")
 enable_vol_breakout = st.sidebar.checkbox("成交量 > 5日均量 N 倍", value=False)
 vol_mult = st.sidebar.slider("成交量放大倍數", 1.2, 5.0, 1.5, 0.1)
 
-enable_high_60 = st.sidebar.checkbox("🌟 股價突破 60 日新高", value=True)
 enable_high_custom = st.sidebar.checkbox("自訂收盤價創 N 日新高", value=False)
 high_period = st.sidebar.slider("自訂創高天數 (N)", 5, 120, 20, 5)
 
@@ -233,13 +232,13 @@ min_volume = st.sidebar.number_input("最低成交量 (張/股)", value=500 if "
 
 
 # ------------------------------------------
-# Section 2: 快捷頁籤與產業過濾
+# Section 2: 快捷頁籤與產業過濾 (已將突破60日新高移至最右邊)
 # ------------------------------------------
 st.subheader("📋 股票篩選結果清單")
 
 quick_filter = st.radio(
     "策略快篩頁籤：",
-    ["全部標的", "🌟 突破60日新高", "🔥 價量齊揚", "🚀 均線多頭+爆量", "🏆 創20日新高"],
+    ["全部標的", "🔥 價量齊揚", "🚀 均線多頭+爆量", "🏆 創20日新高", "🌟 突破60日新高"],
     horizontal=True
 )
 
@@ -336,20 +335,8 @@ for item in current_db:
             tags.append(f"量增 {vol_mult}x")
         else:
             pass_vol = False
-            
-    # 條件 2-2: 突破 60 日新高
-    pass_high_60 = True
-    if enable_high_60:
-        if len(df) > 60:
-            high_60 = df['Close'].iloc[-61:-1].max()
-            if close >= high_60:
-                tags.append("突破60日高")
-            else:
-                pass_high_60 = False
-        else:
-            pass_high_60 = False
 
-    # 條件 2-3: 自訂創 N 日新高
+    # 條件 2-2: 自訂創 N 日新高
     pass_high_custom = True
     if enable_high_custom:
         if len(df) > high_period:
@@ -363,21 +350,21 @@ for item in current_db:
 
     # 快捷頁籤判定
     pass_quick = True
-    if quick_filter == "🌟 突破60日新高":
-        if len(df) > 60:
-            pass_quick = (close >= df['Close'].iloc[-61:-1].max())
-        else:
-            pass_quick = False
-    elif quick_filter == "🔥 價量齊揚":
+    if quick_filter == "🔥 價量齊揚":
         pass_quick = (pct_change > 1.5 and volume > prev['VMA5'])
     elif quick_filter == "🚀 均線多頭+爆量":
         pass_quick = (close > curr['MA8'] > curr['MA21'] and volume >= prev['VMA5'] * 1.3)
     elif quick_filter == "🏆 創20日新高":
         if len(df) > 20:
             pass_quick = (close >= df['Close'].iloc[-21:-1].max())
+    elif quick_filter == "🌟 突破60日新高":
+        if len(df) > 60:
+            pass_quick = (close >= df['Close'].iloc[-61:-1].max())
+        else:
+            pass_quick = False
 
     # 綜合滿足判定
-    if pass_ma and pass_vma and pass_vol and pass_high_60 and pass_high_custom and pass_quick:
+    if pass_ma and pass_vma and pass_vol and pass_high_custom and pass_quick:
         filtered_rows.append({
             "代號": code,
             "股名": name,
