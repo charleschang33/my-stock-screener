@@ -16,7 +16,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 注入自訂 CSS，維持乾淨現代 UI
 st.markdown("""
     <style>
     .stApp {
@@ -100,34 +99,44 @@ def get_batch_stock_data(ticker_list, interval="1d", period="1y"):
 
 
 # ==========================================
-# 4. 繪製頂部半環形情緒儀表圖 (修復 ValueError 問題)
+# 4. 繪製頂部半環形情緒儀表圖 (絕對安全相容寫法)
 # ==========================================
-def create_gauge_chart(title, value, suffix="", min_val=0, max_val=100, steps=None, current_status=""):
-    gauge_dict = {
-        'axis': {'range': [min_val, max_val], 'tickwidth': 1, 'tickcolor': "#cbd5e1"},
-        'bar': {'color': "#1e293b", 'width': 0.2},
-        'bgcolor': "white",
-        'borderwidth': 0
-    }
-    
-    if steps:
-        gauge_dict['steps'] = steps
+def create_gauge_chart(title, display_text, pointer_val, min_val=0, max_val=100, steps=None, current_status=""):
+    """
+    使用全正數刻度進行指針渲染，避免 Plotly 負數軸報錯，數值文字直接客製化顯示
+    """
+    try:
+        fig = go.Figure(go.Indicator(
+            mode="gauge+number",
+            value=pointer_val,
+            number={'valueformat': '', 'font': {'size': 1, 'color': 'rgba(0,0,0,0)'}}, # 隱藏底層數字，用標題/註釋展示
+            title={
+                'text': f"<b>{title}</b><br><span style='font-size:28px;font-weight:bold;color:#0f172a;'>{display_text}</span><br><span style='font-size:12px;color:gray'>{current_status}</span>",
+                'font': {'size': 14, 'color': '#334155'}
+            },
+            gauge={
+                'axis': {'range': [min_val, max_val], 'visible': False},
+                'bar': {'color': "#1e293b", 'width': 0.25},
+                'bgcolor': "white",
+                'borderwidth': 0,
+                'steps': steps if steps else [
+                    {'range': [0, 33], 'color': '#ef4444'},
+                    {'range': [33, 66], 'color': '#f59e0b'},
+                    {'range': [66, 100], 'color': '#22c55e'}
+                ]
+            }
+        ))
         
-    fig = go.Figure(go.Indicator(
-        mode="gauge+number",
-        value=value,
-        number={'suffix': suffix, 'font': {'size': 30, 'color': '#0f172a'}},
-        title={'text': f"<b>{title}</b><br><span style='font-size:12px;color:gray'>{current_status}</span>", 'font': {'size': 15, 'color': '#334155'}},
-        gauge=gauge_dict
-    ))
-    
-    fig.update_layout(
-        height=170,
-        margin=dict(l=20, r=20, t=30, b=10),
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)'
-    )
-    return fig
+        fig.update_layout(
+            height=190,
+            margin=dict(l=20, r=20, t=20, b=10),
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)'
+        )
+        return fig
+    except Exception:
+        # 降級純文字防護
+        return None
 
 
 # ==========================================
@@ -144,40 +153,46 @@ col1, col2, col3 = st.columns(3)
 with col1:
     fig1 = create_gauge_chart(
         title="大戶期權多空比",
-        value=27,
-        suffix="%",
-        min_val=-70,
-        max_val=70,
+        display_text="+27% (偏多)",
+        pointer_val=70,  # 映射到 0~100 刻度
+        min_val=0,
+        max_val=100,
         current_status="偏多 | 最新更新",
         steps=[
-            {'range': [-70, -20], 'color': '#ef4444'},
-            {'range': [-20, 20], 'color': '#f59e0b'},
-            {'range': [20, 70], 'color': '#22c55e'}
+            {'range': [0, 35], 'color': '#22c55e'},
+            {'range': [35, 65], 'color': '#f59e0b'},
+            {'range': [65, 100], 'color': '#ef4444'}
         ]
     )
-    st.plotly_chart(fig1, use_container_width=True)
+    if fig1:
+        st.plotly_chart(fig1, use_container_width=True)
+    else:
+        st.metric("大戶期權多空比", "+27%", "偏多")
 
 with col2:
     fig2 = create_gauge_chart(
         title="TW VIX 臺指波動率",
-        value=35.5,
-        suffix="",
+        display_text="35.5 (高波動)",
+        pointer_val=71, # 35.5 / 50 * 100
         min_val=0,
-        max_val=50,
+        max_val=100,
         current_status="高波動 | 最新更新",
         steps=[
-            {'range': [0, 18], 'color': '#22c55e'},
-            {'range': [18, 30], 'color': '#f59e0b'},
-            {'range': [30, 50], 'color': '#ef4444'}
+            {'range': [0, 36], 'color': '#22c55e'},
+            {'range': [36, 60], 'color': '#f59e0b'},
+            {'range': [60, 100], 'color': '#ef4444'}
         ]
     )
-    st.plotly_chart(fig2, use_container_width=True)
+    if fig2:
+        st.plotly_chart(fig2, use_container_width=True)
+    else:
+        st.metric("TW VIX 臺指波動率", "35.5", "高波動")
 
 with col3:
     fig3 = create_gauge_chart(
-        title="Fear & Greed CNN 恐懼與貪婪",
-        value=64,
-        suffix="",
+        title="Fear & Greed 恐懼與貪婪",
+        display_text="64 (貪婪)",
+        pointer_val=64,
         min_val=0,
         max_val=100,
         current_status="貪婪 | 最新更新",
@@ -187,7 +202,10 @@ with col3:
             {'range': [65, 100], 'color': '#22c55e'}
         ]
     )
-    st.plotly_chart(fig3, use_container_width=True)
+    if fig3:
+        st.plotly_chart(fig3, use_container_width=True)
+    else:
+        st.metric("恐懼與貪婪指數", "64", "貪婪")
 
 st.divider()
 
