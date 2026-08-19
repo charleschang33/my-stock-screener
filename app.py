@@ -93,7 +93,7 @@ div[data-baseweb="select"] input {
 
 
 # ==========================================
-# 2. 標的與大盤/總經指數資料庫 (包含基本面指標：營收YoY、PSR、CSR、CLG)
+# 2. 標的與大盤/總經指數資料庫
 # ==========================================
 MARKET_INDICES = [
     {"code": "^GSPC", "name": "S&P 500 (美股標普)"},
@@ -106,30 +106,30 @@ MARKET_INDICES = [
 ]
 
 STOCK_DATABASE = [
-    {"code": "2330.TW", "name": "台積電", "industry": "半導體", "theme": "AI、晶圓代工、先進封裝", "rev_yoy": 33.8, "psr": 8.5, "csr": 0.45, "clg": 28.5},
-    {"code": "2317.TW", "name": "鴻海", "industry": "電腦週邊", "theme": "AI伺服器、電動車", "rev_yoy": 26.2, "psr": 0.58, "csr": 0.62, "clg": 35.0},
-    {"code": "2454.TW", "name": "聯發科", "industry": "半導體", "theme": "手機晶片、AI芯片", "rev_yoy": 23.5, "psr": 3.8, "csr": 0.28, "clg": 15.2},
-    {"code": "2382.TW", "name": "廣達", "industry": "電腦週邊", "theme": "AI伺服器、雲端運算", "rev_yoy": 38.5, "psr": 0.95, "csr": 0.78, "clg": 48.0},
-    {"code": "2308.TW", "name": "台達電", "industry": "電子零組件", "theme": "電源供應、充電樁", "rev_yoy": 12.8, "psr": 2.6, "csr": 0.35, "clg": 18.0},
-    {"code": "3711.TW", "name": "日月光投控", "industry": "半導體", "theme": "封測、CoWoS", "rev_yoy": 15.2, "psr": 1.25, "csr": 0.52, "clg": 22.4},
-    {"code": "2603.TW", "name": "長榮", "industry": "航運海運", "theme": "貨櫃航運、高股息", "rev_yoy": 42.0, "psr": 1.10, "csr": 0.85, "clg": 31.0},
-    {"code": "3231.TW", "name": "緯創", "industry": "電腦週邊", "theme": "AI伺服器、代工", "rev_yoy": 29.4, "psr": 0.42, "csr": 0.68, "clg": 42.5},
-    {"code": "6669.TW", "name": "緯穎", "industry": "電腦週邊", "theme": "AI伺服器、液冷散熱", "rev_yoy": 48.0, "psr": 1.42, "csr": 0.92, "clg": 65.0},
-    {"code": "2379.TW", "name": "瑞昱", "industry": "半導體", "theme": "網通晶片、車用電子", "rev_yoy": 18.6, "psr": 2.4, "csr": 0.32, "clg": 12.0},
-    {"code": "3008.TW", "name": "大立光", "industry": "光電/鏡頭", "theme": "潛望鏡頭、蘋果供應鏈", "rev_yoy": 16.5, "psr": 5.2, "csr": 0.18, "clg": 8.5},
-    {"code": "3037.TW", "name": "欣興", "industry": "電子零組件", "theme": "ABF載板、PCB", "rev_yoy": 21.5, "psr": 1.38, "csr": 0.55, "clg": 26.0},
-    {"code": "2476.TW", "name": "鉅祥", "industry": "電子零組件", "theme": "沖壓件、車用元件", "rev_yoy": 25.8, "psr": 1.48, "csr": 0.58, "clg": 24.5},
-    {"code": "2467.TW", "name": "志聖", "industry": "其他電子/設備", "theme": "CoWoS設備、PCB設備", "rev_yoy": 35.2, "psr": 4.5, "csr": 0.88, "clg": 52.0},
-    {"code": "3605.TW", "name": "致茂", "industry": "其他電子/設備", "theme": "量測儀器、半導體測試", "rev_yoy": 28.0, "psr": 3.6, "csr": 0.72, "clg": 38.0}
+    {"code": "2330.TW", "name": "台積電", "industry": "半導體", "theme": "AI、晶圓代工、先進封裝", "market_cap_bil": 15000.0, "rev_yoy": 33.8, "psr": 8.5, "csr": 0.45, "clg": 28.5},
+    {"code": "2317.TW", "name": "鴻海", "industry": "電腦週邊", "theme": "AI伺服器、電動車", "market_cap_bil": 2400.0, "rev_yoy": 26.2, "psr": 0.58, "csr": 0.62, "clg": 35.0},
+    {"code": "2454.TW", "name": "聯發科", "industry": "半導體", "theme": "手機晶片、AI芯片", "market_cap_bil": 2100.0, "rev_yoy": 23.5, "psr": 3.8, "csr": 0.28, "clg": 15.2},
+    {"code": "2382.TW", "name": "廣達", "industry": "電腦週邊", "theme": "AI伺服器、雲端運算", "market_cap_bil": 1200.0, "rev_yoy": 38.5, "psr": 0.95, "csr": 0.78, "clg": 48.0},
+    {"code": "2308.TW", "name": "台達電", "industry": "電子零組件", "theme": "電源供應、充電樁", "market_cap_bil": 1100.0, "rev_yoy": 12.8, "psr": 2.6, "csr": 0.35, "clg": 18.0},
+    {"code": "3711.TW", "name": "日月光投控", "industry": "半導體", "theme": "封測、CoWoS", "market_cap_bil": 680.0, "rev_yoy": 15.2, "psr": 1.25, "csr": 0.52, "clg": 22.4},
+    {"code": "2603.TW", "name": "長榮", "industry": "航運海運", "theme": "貨櫃航運、高股息", "market_cap_bil": 450.0, "rev_yoy": 42.0, "psr": 1.10, "csr": 0.85, "clg": 31.0},
+    {"code": "3231.TW", "name": "緯創", "industry": "電腦週邊", "theme": "AI伺服器、代工", "market_cap_bil": 380.0, "rev_yoy": 29.4, "psr": 0.42, "csr": 0.68, "clg": 42.5},
+    {"code": "6669.TW", "name": "緯穎", "industry": "電腦週邊", "theme": "AI伺服器、液冷散熱", "market_cap_bil": 420.0, "rev_yoy": 48.0, "psr": 1.42, "csr": 0.92, "clg": 65.0},
+    {"code": "2379.TW", "name": "瑞昱", "industry": "半導體", "theme": "網通晶片、車用電子", "market_cap_bil": 280.0, "rev_yoy": 18.6, "psr": 2.4, "csr": 0.32, "clg": 12.0},
+    {"code": "3008.TW", "name": "大立光", "industry": "光電/鏡頭", "theme": "潛望鏡頭、蘋果供應鏈", "market_cap_bil": 340.0, "rev_yoy": 16.5, "psr": 5.2, "csr": 0.18, "clg": 8.5},
+    {"code": "3037.TW", "name": "欣興", "industry": "電子零組件", "theme": "ABF載板、PCB", "market_cap_bil": 250.0, "rev_yoy": 21.5, "psr": 1.38, "csr": 0.55, "clg": 26.0},
+    {"code": "2476.TW", "name": "鉅祥", "industry": "電子零組件", "theme": "沖壓件、車用元件", "market_cap_bil": 35.0, "rev_yoy": 25.8, "psr": 1.48, "csr": 0.58, "clg": 24.5},
+    {"code": "2467.TW", "name": "志聖", "industry": "半導體設備", "theme": "CoWoS設備、PCB設備", "market_cap_bil": 42.0, "rev_yoy": 35.2, "psr": 4.5, "csr": 0.88, "clg": 52.0},
+    {"code": "3605.TW", "name": "致茂", "industry": "其他電子", "theme": "量測儀器、半導體測試", "market_cap_bil": 160.0, "rev_yoy": 28.0, "psr": 3.6, "csr": 0.72, "clg": 38.0}
 ]
 
 US_STOCK_DATABASE = [
-    {"code": "NVDA", "name": "NVIDIA", "industry": "半導體", "theme": "AI GPU、資料中心", "rev_yoy": 122.0, "psr": 25.0, "csr": 1.20, "clg": 85.0},
-    {"code": "AAPL", "name": "Apple", "industry": "消費電子", "theme": "iPhone、Apple Intelligence", "rev_yoy": 8.5, "psr": 8.2, "csr": 0.40, "clg": 10.5},
-    {"code": "MSFT", "name": "Microsoft", "industry": "軟體雲端", "theme": "Azure、Copilot", "rev_yoy": 16.0, "psr": 12.0, "csr": 0.95, "clg": 24.0},
-    {"code": "TSLA", "name": "Tesla", "industry": "汽車", "theme": "電動車、FSD、人形機器人", "rev_yoy": 14.2, "psr": 6.8, "csr": 0.30, "clg": 18.0},
-    {"code": "AMD", "name": "AMD", "industry": "半導體", "theme": "AI Accelerator、CPU", "rev_yoy": 24.0, "psr": 9.5, "csr": 0.35, "clg": 22.0},
-    {"code": "AVGO", "name": "Broadcom", "industry": "半導體", "theme": "ASIC、網通晶片", "rev_yoy": 45.0, "psr": 14.5, "csr": 0.82, "clg": 40.0}
+    {"code": "NVDA", "name": "NVIDIA", "industry": "半導體", "theme": "AI GPU、資料中心", "market_cap_bil": 3000.0, "rev_yoy": 122.0, "psr": 25.0, "csr": 1.20, "clg": 85.0},
+    {"code": "AAPL", "name": "Apple", "industry": "消費電子", "theme": "iPhone、Apple Intelligence", "market_cap_bil": 3300.0, "rev_yoy": 8.5, "psr": 8.2, "csr": 0.40, "clg": 10.5},
+    {"code": "MSFT", "name": "Microsoft", "industry": "軟體雲端", "theme": "Azure、Copilot", "market_cap_bil": 3100.0, "rev_yoy": 16.0, "psr": 12.0, "csr": 0.95, "clg": 24.0},
+    {"code": "TSLA", "name": "Tesla", "industry": "汽車", "theme": "電動車、FSD、人形機器人", "market_cap_bil": 800.0, "rev_yoy": 14.2, "psr": 6.8, "csr": 0.30, "clg": 18.0},
+    {"code": "AMD", "name": "AMD", "industry": "半導體", "theme": "AI Accelerator、CPU", "market_cap_bil": 250.0, "rev_yoy": 24.0, "psr": 9.5, "csr": 0.35, "clg": 22.0},
+    {"code": "AVGO", "name": "Broadcom", "industry": "半導體", "theme": "ASIC、網通晶片", "market_cap_bil": 850.0, "rev_yoy": 45.0, "psr": 14.5, "csr": 0.82, "clg": 40.0}
 ]
 
 
@@ -631,7 +631,13 @@ timeframe_map = {
 selected_timeframe = st.sidebar.selectbox("⏱️ 選股分析週期", list(timeframe_map.keys()), index=0)
 interval_code, period_code = timeframe_map[selected_timeframe]
 
-st.sidebar.subheader("1. 🚀 基本面飆股條件 (新增)")
+st.sidebar.subheader("1. 🎓 大師選股：點靈 (廖崧沂)")
+enable_master_dianling = st.sidebar.checkbox("啟用點靈講義過濾條件", value=False)
+min_master_price = st.sidebar.number_input("最低股價 (元)", value=100.0, step=10.0)
+min_master_vol = st.sidebar.number_input("昨日成交量最低 (張)", value=1000, step=100)
+min_master_cap = st.sidebar.number_input("總市值最低 (億元)", value=20.0, step=5.0)
+
+st.sidebar.subheader("2. 🚀 基本面飆股條件")
 enable_rev_grow = st.sidebar.checkbox("月營收年增率 (YoY) >= 20%", value=False)
 min_rev_yoy = st.sidebar.number_input("營收年增門檻 (%)", value=20.0, step=5.0)
 
@@ -644,7 +650,7 @@ min_csr = st.sidebar.number_input("最低 CSR 門檻", value=0.5, step=0.1)
 enable_clg = st.sidebar.checkbox("合約負債年成長 (CLG) >= 20%", value=False)
 min_clg = st.sidebar.number_input("最低 CLG 門檻 (%)", value=20.0, step=5.0)
 
-st.sidebar.subheader("2. 🎯 DMI 多空指標條件")
+st.sidebar.subheader("3. 🎯 DMI 多空指標條件")
 enable_dmi_pdi_day = st.sidebar.checkbox("DMI +DI(日) >= 門檻", value=False)
 dmi_pdi_min_day = st.sidebar.number_input("+DI(日) 最低門檻", value=37.0, step=1.0)
 
@@ -652,20 +658,20 @@ enable_dmi_week_bull = st.sidebar.checkbox("+DI(週) > -DI(週)", value=False)
 enable_dmi_week_adx = st.sidebar.checkbox("ADX(週) > -DI(週)", value=False)
 enable_week_ma5_ma20 = st.sidebar.checkbox("週均線 5MA > 20MA", value=False)
 
-st.sidebar.subheader("3. K棒型態與均線選股")
+st.sidebar.subheader("4. K棒型態與均線選股")
 enable_three_bar_breakout = st.sidebar.checkbox("🔥 三盤突破", value=False)
 enable_three_bar_breakdown = st.sidebar.checkbox("❄️ 三盤跌破", value=False)
 enable_ma_trend = st.sidebar.checkbox("均線多頭 (MA8 > MA21 > MA55)", value=False)
 enable_vma_trend = st.sidebar.checkbox("成交量均線 (VMA5 > VMA13 > VMA34)", value=False)
 
-st.sidebar.subheader("4. 價量突破與創高")
+st.sidebar.subheader("5. 價量突破與創高")
 enable_vol_breakout = st.sidebar.checkbox("成交量 > 5日均量 N 倍", value=False)
 vol_mult = st.sidebar.slider("成交量放大倍數", 1.2, 5.0, 1.5, 0.1)
 
 enable_high_custom = st.sidebar.checkbox("自訂收盤價創 N 日新高", value=False)
 high_period = st.sidebar.slider("自訂創高天數 (N)", 5, 120, 20, 5)
 
-st.sidebar.subheader("5. 門檻過濾")
+st.sidebar.subheader("6. 門檻過濾")
 min_price = st.sidebar.number_input("最低股價 (台幣NTD / 美元USD)", value=10.0, step=1.0)
 min_volume = st.sidebar.number_input("最低成交量 (張/股)", value=500 if "台股" in market_choice else 500000, step=100)
 
@@ -677,7 +683,7 @@ st.subheader("📋 股票篩選結果清單")
 
 quick_filter = st.radio(
     "策略快篩頁籤：",
-    ["全部標的", "🚀 基本面飆股", "🎯 DMI強勢波段", "🔥 三盤突破", "❄️ 三盤跌破", "⚡ 價量齊揚", "🏆 創20日新高", "🌟 突破60日新高"],
+    ["全部標的", "🎓 點靈大師選股", "🚀 基本面飆股", "🎯 DMI強勢波段", "🔥 三盤突破", "❄️ 三盤跌破", "⚡ 價量齊揚", "🚀 均線多頭+爆量", "🏆 創20日新高", "🌟 突破60日新高"],
     horizontal=True
 )
 
@@ -692,7 +698,7 @@ with col_ind:
 
 
 # ------------------------------------------
-# Section 3: 執行篩選邏輯 (整合基本面飆股條件)
+# Section 3: 執行篩選邏輯 (整合點靈大師選股條件)
 # ------------------------------------------
 target_tickers = [item["code"] for item in current_db]
 raw_stock_data = get_stock_data_source(target_tickers, data_source=data_source, interval=interval_code, period=period_code)
@@ -711,6 +717,7 @@ for item in current_db:
     name = item["name"]
     industry = item["industry"]
     theme = item["theme"]
+    market_cap = item.get("market_cap_bil", 30.0)
     rev_yoy = item.get("rev_yoy", 0.0)
     psr = item.get("psr", 99.0)
     csr = item.get("csr", 0.0)
@@ -761,6 +768,14 @@ for item in current_db:
         
     tags = []
     
+    # 點靈大師選股條件檢查 (股價 > 100, 成交量 > 1000張, 市值 > 20億)[cite: 1]
+    pass_master_dianling = True
+    if enable_master_dianling:
+        if close > min_master_price and vol_display >= min_master_vol and market_cap >= min_master_cap:
+            tags.append("🎓點靈選股")
+        else:
+            pass_master_dianling = False
+
     # 基本面條件檢查
     pass_fund_rev = True
     if enable_rev_grow:
@@ -790,7 +805,6 @@ for item in current_db:
         else:
             pass_fund_clg = False
 
-    # 飆股基本面整體模型判定
     is_super_stock = (rev_yoy >= 20.0 and psr <= 1.5 and csr >= 0.5 and clg >= 20.0)
 
     # 技術面條件
@@ -894,7 +908,9 @@ for item in current_db:
 
     # 快捷頁籤判定
     pass_quick = True
-    if quick_filter == "🚀 基本面飆股":
+    if quick_filter == "🎓 點靈大師選股":
+        pass_quick = (close > 100.0 and vol_display >= 1000 and market_cap >= 20.0)
+    elif quick_filter == "🚀 基本面飆股":
         pass_quick = is_super_stock
     elif quick_filter == "🎯 DMI強勢波段":
         pass_quick = (curr['Plus_DI'] >= 30 and is_dmi_wk_bull and is_dmi_wk_adx and is_wk_ma_aligned)
@@ -904,6 +920,8 @@ for item in current_db:
         pass_quick = is_three_bar_breakdown
     elif quick_filter == "⚡ 價量齊揚":
         pass_quick = (pct_change > 1.5 and volume > prev1['VMA5'])
+    elif quick_filter == "🚀 均線多頭+爆量":
+        pass_quick = (is_ma_aligned and volume >= prev1['VMA5'] * 1.3)
     elif quick_filter == "🏆 創20日新高":
         if len(df) > 20:
             pass_quick = (close >= df['Close'].iloc[-21:-1].max())
@@ -913,12 +931,13 @@ for item in current_db:
         else:
             pass_quick = False
 
-    if pass_fund_rev and pass_fund_psr and pass_fund_csr and pass_fund_clg and pass_three_bar and pass_three_breakdown and pass_ma and pass_vma and pass_vol and pass_high_custom and pass_dmi_day and pass_dmi_wk_bull and pass_dmi_wk_adx and pass_wk_ma and pass_quick:
+    if pass_master_dianling and pass_fund_rev and pass_fund_psr and pass_fund_csr and pass_fund_clg and pass_three_bar and pass_three_breakdown and pass_ma and pass_vma and pass_vol and pass_high_custom and pass_dmi_day and pass_dmi_wk_bull and pass_dmi_wk_adx and pass_wk_ma and pass_quick:
         filtered_rows.append({
             "代號": code,
             "股名": name,
             "最新股價": round(close, 2),
             "漲跌幅 (%)": round(pct_change, 2),
+            "市值 (億)": f"{market_cap:.0f}億",
             "營收YoY (%)": f"{rev_yoy:+.1f}%",
             "PSR (倍)": f"{psr:.2f}",
             "CSR (合約比)": f"{csr:.2f}",
@@ -971,6 +990,7 @@ elif not df_result.empty:
             "股名": st.column_config.TextColumn("股名", width="small"),
             "最新股價": st.column_config.NumberColumn("最新股價", width="small"),
             "漲跌幅 (%)": st.column_config.NumberColumn("漲跌幅 (%)", width="small"),
+            "市值 (億)": st.column_config.TextColumn("市值", width="small"),
             "營收YoY (%)": st.column_config.TextColumn("營收YoY", width="small"),
             "PSR (倍)": st.column_config.TextColumn("PSR", width="small"),
             "CSR (合約比)": st.column_config.TextColumn("CSR", width="small"),
@@ -1128,7 +1148,6 @@ elif not df_result.empty:
             
             plot_df = df_k.iloc[-100:].copy()
             
-            # 為各線條計算每日動態升降箭頭以供 Hover 顯示
             plot_df['MA8_arr'] = ["↑" if diff >= 0 else "↓" for diff in plot_df['MA8'].diff().fillna(0)]
             plot_df['MA21_arr'] = ["↑" if diff >= 0 else "↓" for diff in plot_df['MA21'].diff().fillna(0)]
             plot_df['MA55_arr'] = ["↑" if diff >= 0 else "↓" for diff in plot_df['MA55'].diff().fillna(0)]
@@ -1240,10 +1259,14 @@ elif not df_result.empty:
             ), row=2, col=1)
             
             fig_k.add_trace(go.Scatter(
-                x=plot_df.index, y=plot_df['VMA13'], mode='lines', name=f'VMA13 {arrow_vma13}', line=dict(color='#06b6d4', width=1.3)), row=2, col=1)
+                x=plot_df.index, y=plot_df['VMA13'], mode='lines', name=f'VMA13 {arrow_vma13}', line=dict(color='#06b6d4', width=1.3),
+                hovertemplate="VMA13: %{y:,.0f} %{customdata}<extra></extra>", customdata=plot_df['VMA13_arr']
+            ), row=2, col=1)
             
             fig_k.add_trace(go.Scatter(
-                x=plot_df.index, y=plot_df['VMA34'], mode='lines', name=f'VMA34 {arrow_vma34}', line=dict(color='#10b981', width=1.3)), row=2, col=1)
+                x=plot_df.index, y=plot_df['VMA34'], mode='lines', name=f'VMA34 {arrow_vma34}', line=dict(color='#10b981', width=1.3),
+                hovertemplate="VMA34: %{y:,.0f} %{customdata}<extra></extra>", customdata=plot_df['VMA34_arr']
+            ), row=2, col=1)
             
             # 3. 第 3 層副圖
             if "DMI" in indicator_choice:
