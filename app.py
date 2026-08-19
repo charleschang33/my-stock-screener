@@ -639,8 +639,7 @@ st.sidebar.subheader("2. 均線排列條件")
 enable_ma_trend = st.sidebar.checkbox("均線多頭 (MA8 > MA21 > MA55)", value=False)
 enable_vma_trend = st.sidebar.checkbox("成交量均線 (VMA5 > VMA13 > VMA34)", value=False)
 
-# 新增 DMI 圖片條件設定
-st.sidebar.subheader("3. 🎯 DMI 多空指標條件 (參照自訂)")
+st.sidebar.subheader("3. 🎯 DMI 多空指標條件")
 enable_dmi_pdi_day = st.sidebar.checkbox("DMI +DI(日) >= 門檻", value=False)
 dmi_pdi_min_day = st.sidebar.number_input("+DI(日) 最低門檻", value=37.0, step=1.0)
 
@@ -682,12 +681,11 @@ with col_ind:
 
 
 # ------------------------------------------
-# Section 3: 執行篩選邏輯 (支援週線 DMI 跨週期運算)
+# Section 3: 執行篩選邏輯
 # ------------------------------------------
 target_tickers = [item["code"] for item in current_db]
 raw_stock_data = get_stock_data_source(target_tickers, data_source=data_source, interval=interval_code, period=period_code)
 
-# 取得週線資料以計算週線 DMI 與週 5MA/20MA
 raw_weekly_data = {}
 if enable_dmi_week_bull or enable_dmi_week_adx or enable_week_ma5_ma20 or quick_filter == "🎯 DMI強勢波段":
     raw_weekly_data = get_stock_data_source(target_tickers, data_source="yfinance", interval="1wk", period="2y")
@@ -718,7 +716,6 @@ for item in current_db:
     df['VMA13'] = df['Volume'].rolling(13, min_periods=1).mean()
     df['VMA34'] = df['Volume'].rolling(34, min_periods=1).mean()
     
-    # 計算日線 DMI
     p_di_day, m_di_day, adx_day = calculate_dmi(df, 14)
     df['Plus_DI'] = p_di_day
     df['Minus_DI'] = m_di_day
@@ -749,7 +746,6 @@ for item in current_db:
         
     tags = []
     
-    # 條件 1: 三盤突破 / 跌破
     is_three_bar_breakout = (close > close_prev1) and (close > close_prev2)
     pass_three_bar = True
     if enable_three_bar_breakout:
@@ -766,7 +762,6 @@ for item in current_db:
     if is_three_bar_breakdown:
         tags.append("三盤跌破")
 
-    # 條件 2: 均線多頭
     is_ma_aligned = (curr['MA8'] > curr['MA21'] > curr['MA55'])
     pass_ma = True
     if enable_ma_trend:
@@ -783,8 +778,6 @@ for item in current_db:
     if is_vma_aligned:
         tags.append("量均多頭")
 
-    # 條件 3: DMI 日線與週線條件檢查
-    # 3-1: +DI(日) >= 37
     pass_dmi_day = True
     if enable_dmi_pdi_day:
         if curr['Plus_DI'] >= dmi_pdi_min_day:
@@ -792,7 +785,6 @@ for item in current_db:
         else:
             pass_dmi_day = False
 
-    # 3-2: 週線指標判定
     pass_dmi_wk_bull = True
     pass_dmi_wk_adx = True
     pass_wk_ma = True
@@ -834,7 +826,6 @@ for item in current_db:
             else:
                 pass_wk_ma = False
 
-    # 條件 4: 帶量突破
     pass_vol = True
     if enable_vol_breakout:
         if prev1['VMA5'] > 0 and volume >= (prev1['VMA5'] * vol_mult):
@@ -853,7 +844,6 @@ for item in current_db:
         else:
             pass_high_custom = False
 
-    # 快捷頁籤判定
     pass_quick = True
     if quick_filter == "🎯 DMI強勢波段":
         pass_quick = (curr['Plus_DI'] >= 30 and is_dmi_wk_bull and is_dmi_wk_adx and is_wk_ma_aligned)
@@ -943,7 +933,7 @@ elif not df_result.empty:
     st.divider()
 
     # ------------------------------------------
-    # Section 5: Plotly 互動式 K 線與多週期、多指標切換系統
+    # Section 5: Plotly 互動式 K 線與多週期、多指標切換系統 (支援全指標箭頭與三圖垂直對齊直線)
     # ------------------------------------------
     st.subheader("📈 技術分析與多週期圖表")
     
@@ -1057,22 +1047,49 @@ elif not df_result.empty:
             curr_row = df_k.iloc[-1]
             prev_row = df_k.iloc[-2] if len(df_k) >= 2 else curr_row
             
+            # 主圖 MA 箭頭
             arrow_ma8 = "<span style='color:#ef4444;'>↑</span>" if curr_row['MA8'] >= prev_row['MA8'] else "<span style='color:#22c55e;'>↓</span>"
             arrow_ma21 = "<span style='color:#ef4444;'>↑</span>" if curr_row['MA21'] >= prev_row['MA21'] else "<span style='color:#22c55e;'>↓</span>"
             arrow_ma55 = "<span style='color:#ef4444;'>↑</span>" if curr_row['MA55'] >= prev_row['MA55'] else "<span style='color:#22c55e;'>↓</span>"
             
+            # 成交量均線箭頭
             arrow_vma5 = "<span style='color:#ef4444;'>↑</span>" if curr_row['VMA5'] >= prev_row['VMA5'] else "<span style='color:#22c55e;'>↓</span>"
             arrow_vma13 = "<span style='color:#ef4444;'>↑</span>" if curr_row['VMA13'] >= prev_row['VMA13'] else "<span style='color:#22c55e;'>↓</span>"
             arrow_vma34 = "<span style='color:#ef4444;'>↑</span>" if curr_row['VMA34'] >= prev_row['VMA34'] else "<span style='color:#22c55e;'>↓</span>"
+
+            # 副圖指標所有線條箭頭判斷
+            arrow_pdi = "<span style='color:#ef4444;'>↑</span>" if curr_row['Plus_DI'] >= prev_row['Plus_DI'] else "<span style='color:#22c55e;'>↓</span>"
+            arrow_mdi = "<span style='color:#ef4444;'>↑</span>" if curr_row['Minus_DI'] >= prev_row['Minus_DI'] else "<span style='color:#22c55e;'>↓</span>"
+            arrow_adx = "<span style='color:#ef4444;'>↑</span>" if curr_row['ADX'] >= prev_row['ADX'] else "<span style='color:#22c55e;'>↓</span>"
+
+            arrow_k = "<span style='color:#ef4444;'>↑</span>" if curr_row['K'] >= prev_row['K'] else "<span style='color:#22c55e;'>↓</span>"
+            arrow_d = "<span style='color:#ef4444;'>↑</span>" if curr_row['D'] >= prev_row['D'] else "<span style='color:#22c55e;'>↓</span>"
+
+            arrow_rsi6 = "<span style='color:#ef4444;'>↑</span>" if curr_row['RSI6'] >= prev_row['RSI6'] else "<span style='color:#22c55e;'>↓</span>"
+            arrow_rsi12 = "<span style='color:#ef4444;'>↑</span>" if curr_row['RSI12'] >= prev_row['RSI12'] else "<span style='color:#22c55e;'>↓</span>"
+
+            arrow_dif = "<span style='color:#ef4444;'>↑</span>" if curr_row['DIF'] >= prev_row['DIF'] else "<span style='color:#22c55e;'>↓</span>"
+            arrow_macd = "<span style='color:#ef4444;'>↑</span>" if curr_row['MACD'] >= prev_row['MACD'] else "<span style='color:#22c55e;'>↓</span>"
+            arrow_osc = "<span style='color:#ef4444;'>↑</span>" if curr_row['OSC'] >= prev_row['OSC'] else "<span style='color:#22c55e;'>↓</span>"
             
             plot_df = df_k.iloc[-100:].copy()
             
+            # 動態組裝副圖標題文字
+            if "DMI" in indicator_choice:
+                ind_sub_title = f"<b>DMI 趨向指標 (+DI {arrow_pdi} / -DI {arrow_mdi} / ADX {arrow_adx})</b>"
+            elif "KD" in indicator_choice:
+                ind_sub_title = f"<b>KD 指標 (K {arrow_k} / D {arrow_d})</b>"
+            elif "RSI" in indicator_choice:
+                ind_sub_title = f"<b>RSI 強弱指標 (RSI6 {arrow_rsi6} / RSI12 {arrow_rsi12})</b>"
+            else:
+                ind_sub_title = f"<b>MACD 指標 (DIF {arrow_dif} / MACD {arrow_macd} / OSC {arrow_osc})</b>"
+
             fig_k = make_subplots(
                 rows=3, cols=1,
                 shared_xaxes=True,
                 vertical_spacing=0.08,
                 row_heights=[0.54, 0.23, 0.23],
-                subplot_titles=("", f"<b>成交量 (VMA5 {arrow_vma5} / VMA13 {arrow_vma13} / VMA34 {arrow_vma34})</b>", f"<b>{indicator_choice}</b>")
+                subplot_titles=("", f"<b>成交量 (VMA5 {arrow_vma5} / VMA13 {arrow_vma13} / VMA34 {arrow_vma34})</b>", ind_sub_title)
             )
             
             # 1. 主圖：K 線
@@ -1143,36 +1160,38 @@ elif not df_result.empty:
                 row=2, col=1
             )
             
-            # 3. 第 3 層副圖
+            # 3. 第 3 層副圖（圖例帶有動態箭頭）
             if "DMI" in indicator_choice:
-                fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['Plus_DI'], mode='lines', name='+DI (多方)', line=dict(color='#ef4444', width=1.5)), row=3, col=1)
-                fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['Minus_DI'], mode='lines', name='-DI (空方)', line=dict(color='#22c55e', width=1.5)), row=3, col=1)
-                fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['ADX'], mode='lines', name='ADX (趨勢強度)', line=dict(color='#f59e0b', width=1.5)), row=3, col=1)
+                fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['Plus_DI'], mode='lines', name=f'+DI {arrow_pdi}', line=dict(color='#ef4444', width=1.5)), row=3, col=1)
+                fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['Minus_DI'], mode='lines', name=f'-DI {arrow_mdi}', line=dict(color='#22c55e', width=1.5)), row=3, col=1)
+                fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['ADX'], mode='lines', name=f'ADX {arrow_adx}', line=dict(color='#f59e0b', width=1.5)), row=3, col=1)
                 fig_k.add_hline(y=25, line_dash="dot", line_color="#94a3b8", line_width=1, row=3, col=1)
 
             elif "KD" in indicator_choice:
-                fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['K'], mode='lines', name='K值', line=dict(color='#f59e0b', width=1.5)), row=3, col=1)
-                fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['D'], mode='lines', name='D值', line=dict(color='#3b82f6', width=1.5)), row=3, col=1)
+                fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['K'], mode='lines', name=f'K值 {arrow_k}', line=dict(color='#f59e0b', width=1.5)), row=3, col=1)
+                fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['D'], mode='lines', name=f'D值 {arrow_d}', line=dict(color='#3b82f6', width=1.5)), row=3, col=1)
                 fig_k.add_hline(y=80, line_dash="dot", line_color="#ef4444", line_width=1, row=3, col=1)
                 fig_k.add_hline(y=20, line_dash="dot", line_color="#22c55e", line_width=1, row=3, col=1)
 
             elif "RSI" in indicator_choice:
-                fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['RSI6'], mode='lines', name='RSI 6日', line=dict(color='#ec4899', width=1.5)), row=3, col=1)
-                fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['RSI12'], mode='lines', name='RSI 12日', line=dict(color='#64748b', width=1.3)), row=3, col=1)
+                fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['RSI6'], mode='lines', name=f'RSI 6日 {arrow_rsi6}', line=dict(color='#ec4899', width=1.5)), row=3, col=1)
+                fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['RSI12'], mode='lines', name=f'RSI 12日 {arrow_rsi12}', line=dict(color='#64748b', width=1.3)), row=3, col=1)
                 fig_k.add_hline(y=70, line_dash="dot", line_color="#ef4444", line_width=1, row=3, col=1)
                 fig_k.add_hline(y=30, line_dash="dot", line_color="#22c55e", line_width=1, row=3, col=1)
 
             elif "MACD" in indicator_choice:
                 osc_colors = ['#ef4444' if o >= 0 else '#22c55e' for o in plot_df['OSC']]
-                fig_k.add_trace(go.Bar(x=plot_df.index, y=plot_df['OSC'], name='OSC柱狀', marker_color=osc_colors), row=3, col=1)
-                fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['DIF'], mode='lines', name='DIF快線', line=dict(color='#f59e0b', width=1.5)), row=3, col=1)
-                fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['MACD'], mode='lines', name='MACD慢線', line=dict(color='#3b82f6', width=1.5)), row=3, col=1)
+                fig_k.add_trace(go.Bar(x=plot_df.index, y=plot_df['OSC'], name=f'OSC柱 {arrow_osc}', marker_color=osc_colors), row=3, col=1)
+                fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['DIF'], mode='lines', name=f'DIF {arrow_dif}', line=dict(color='#f59e0b', width=1.5)), row=3, col=1)
+                fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['MACD'], mode='lines', name=f'MACD {arrow_macd}', line=dict(color='#3b82f6', width=1.5)), row=3, col=1)
                 fig_k.add_hline(y=0, line_dash="solid", line_color="#cbd5e1", line_width=1, row=3, col=1)
             
+            # 設定全局佈局與三圖貫穿直線（Spike line）
             fig_k.update_layout(
                 height=740,
                 xaxis_rangeslider_visible=False,
                 margin=dict(l=10, r=10, t=35, b=10),
+                hovermode="x",
                 legend=dict(
                     orientation="h",
                     yanchor="bottom",
@@ -1181,6 +1200,16 @@ elif not df_result.empty:
                     x=1,
                     font=dict(size=16, family="Arial")
                 )
+            )
+
+            # 開啟三層子圖共享的垂直對齊引導線
+            fig_k.update_xaxes(
+                showspikes=True,
+                spikemode="across",
+                spikesnap="cursor",
+                spikedash="dot",
+                spikethickness=1,
+                spikecolor="#94a3b8"
             )
             
             for annotation in fig_k['layout']['annotations']:
