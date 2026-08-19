@@ -104,15 +104,15 @@ STOCK_DATABASE = [
     {"code": "2382.TW", "name": "廣達", "industry": "電腦週邊", "theme": "AI伺服器、雲端運算"},
     {"code": "2308.TW", "name": "台達電", "industry": "電子零組件", "theme": "電源供應、充電樁"},
     {"code": "3711.TW", "name": "日月光投控", "industry": "半導體", "theme": "封測、CoWoS"},
-    {"code": "2603.TW", "name": "長榮", "industry": "航運", "theme": "貨櫃航運、高股息"},
+    {"code": "2603.TW", "name": "長榮", "industry": "航運海運", "theme": "貨櫃航運、高股息"},
     {"code": "3231.TW", "name": "緯創", "industry": "電腦週邊", "theme": "AI伺服器、代工"},
     {"code": "6669.TW", "name": "緯穎", "industry": "電腦週邊", "theme": "AI伺服器、液冷散熱"},
     {"code": "2379.TW", "name": "瑞昱", "industry": "半導體", "theme": "網通晶片、車用電子"},
-    {"code": "3008.TW", "name": "大立光", "industry": "光學鏡頭", "theme": "潛望鏡頭、蘋果供應鏈"},
+    {"code": "3008.TW", "name": "大立光", "industry": "光電/鏡頭", "theme": "潛望鏡頭、蘋果供應鏈"},
     {"code": "3037.TW", "name": "欣興", "industry": "電子零組件", "theme": "ABF載板、PCB"},
     {"code": "2476.TW", "name": "鉅祥", "industry": "電子零組件", "theme": "沖壓件、車用元件"},
-    {"code": "2467.TW", "name": "志聖", "industry": "半導體設備", "theme": "CoWoS設備、PCB設備"},
-    {"code": "3605.TW", "name": "致茂", "industry": "其他電子", "theme": "量測儀器、半導體測試"}
+    {"code": "2467.TW", "name": "志聖", "industry": "其他電子/設備", "theme": "CoWoS設備、PCB設備"},
+    {"code": "3605.TW", "name": "致茂", "industry": "其他電子/設備", "theme": "量測儀器、半導體測試"}
 ]
 
 US_STOCK_DATABASE = [
@@ -444,11 +444,10 @@ with col3:
         show_fear_greed_detail()
 
 # ------------------------------------------
-# Section 1.5: 台股族群成交量價比較模組 (新增於半圓下方)
+# Section 1.5: 台股族群成交量價比較與成分股展開模組
 # ------------------------------------------
 st.markdown("#### 🔥 台股主要族群成交量與漲跌幅比較")
 
-# 模擬/統計當日主要族群成交比重與平均漲跌幅
 sector_data = pd.DataFrame({
     "族群名稱": ["半導體", "電腦週邊", "電子零組件", "其他電子/設備", "光電/鏡頭", "航運海運", "金融保險", "綠能重電"],
     "成交金額 (億)": [1680, 840, 430, 310, 195, 210, 165, 120],
@@ -457,23 +456,23 @@ sector_data = pd.DataFrame({
     "指標領頭股": ["台積電、聯發科", "廣達、緯穎", "欣興、台達電", "致茂、志聖", "大立光、玉晶光", "長榮、陽明", "富邦金、國泰金", "華城、中興電"]
 })
 
-# 繪製族群量價雙軸圖
+# 繪製族群量價雙軸圖 (已優化避免字體重疊)
 fig_sector = make_subplots(specs=[[{"secondary_y": True}]])
 
-# 柱狀圖：成交金額
+# 柱狀圖：成交金額 (改為 hover 提示，避免字體重疊)
 fig_sector.add_trace(
     go.Bar(
         x=sector_data["族群名稱"],
         y=sector_data["成交金額 (億)"],
         name="成交金額 (億元)",
         marker_color="#3b82f6",
-        text=[f"{v}億 ({p}%)" for v, p in zip(sector_data["成交金額 (億)"], sector_data["成交比重 (%)"])],
-        textposition="auto"
+        hovertemplate="<b>%{x}</b><br>成交金額: %{y} 億<br>資金比重: %{customdata}%<extra></extra>",
+        customdata=sector_data["成交比重 (%)"]
     ),
     secondary_y=False
 )
 
-# 折線圖：平均漲跌幅 (紅漲綠跌)
+# 折線圖：平均漲跌幅 (加大頂部 Y 軸空間，避免數字被切斷)
 scatter_colors = ['#ef4444' if pct >= 0 else '#22c55e' for pct in sector_data["族群平均漲跌 (%)"]]
 fig_sector.add_trace(
     go.Scatter(
@@ -491,16 +490,44 @@ fig_sector.add_trace(
 )
 
 fig_sector.update_layout(
-    height=320,
-    margin=dict(l=20, r=20, t=30, b=20),
+    height=340,
+    margin=dict(l=20, r=20, t=35, b=20),
     legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
     paper_bgcolor='rgba(0,0,0,0)',
     plot_bgcolor='rgba(0,0,0,0)'
 )
 fig_sector.update_yaxes(title_text="成交金額 (億元)", secondary_y=False, showgrid=True, gridcolor="#f1f5f9")
-fig_sector.update_yaxes(title_text="族群漲跌幅 (%)", secondary_y=True, showgrid=False)
+# 加大 Y 軸上限，確保文字不被邊界遮擋
+fig_sector.update_yaxes(title_text="族群漲跌幅 (%)", secondary_y=True, showgrid=False, range=[-1.2, 3.2])
 
 st.plotly_chart(fig_sector, use_container_width=True)
+
+# 族群點擊展開成分股清單
+st.markdown("👇 **點選下方族群名稱，立即展開成分股與量價明細：**")
+selected_sector_tab = st.radio(
+    "選擇要檢視成分股的族群：",
+    sector_data["族群名稱"].tolist(),
+    horizontal=True,
+    label_visibility="collapsed"
+)
+
+# 根據選取的族群篩選成分股
+sector_stock_rows = []
+for s_item in STOCK_DATABASE:
+    if s_item["industry"] == selected_sector_tab:
+        sector_stock_rows.append(s_item)
+
+if sector_stock_rows:
+    st.info(f"📂 **【{selected_sector_tab}】族群成分股列表（點擊可直接切換下方 K 線圖表）：**")
+    sec_cols = st.columns(len(sector_stock_rows))
+    for idx, s_info in enumerate(sector_stock_rows):
+        with sec_cols[idx]:
+            st.markdown(f"**{s_info['name']}** (`{s_info['code']}`)")
+            st.caption(f"題材：{s_info['theme']}")
+            if st.button(f"🔍 檢視 {s_info['name']} K線", key=f"btn_sec_stk_{s_info['code']}", use_container_width=True):
+                st.session_state["selected_stock_code"] = s_info["code"]
+else:
+    st.caption(f"💡 目前資料庫中【{selected_sector_tab}】暫無獨立成分股收錄。")
 
 st.divider()
 
@@ -642,7 +669,7 @@ for item in current_db:
     pass_three_breakdown = True
     if enable_three_bar_breakdown:
         if not is_three_bar_breakdown:
-            pass_three_bar = False
+            pass_three_breakdown = False
     if is_three_bar_breakdown:
         tags.append("三盤跌破")
 
