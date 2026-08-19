@@ -216,7 +216,8 @@ selected_timeframe = st.sidebar.selectbox("⏱️ 分析週期", list(timeframe_
 interval_code, period_code = timeframe_map[selected_timeframe]
 
 st.sidebar.subheader("1. K棒型態選股")
-enable_three_bar_breakout = st.sidebar.checkbox("🔥 三盤突破 (今收 > 昨收 且 今收 > 前日收)", value=False)
+enable_three_bar_breakout = st.sidebar.checkbox("🔥 三盤突破", value=False)
+enable_three_bar_breakdown = st.sidebar.checkbox("❄️ 三盤跌破", value=False)
 
 st.sidebar.subheader("2. 均線排列條件")
 enable_ma_trend = st.sidebar.checkbox("均線多頭 (Close > MA8 > MA21 > MA55)", value=False)
@@ -241,7 +242,7 @@ st.subheader("📋 股票篩選結果清單")
 
 quick_filter = st.radio(
     "策略快篩頁籤：",
-    ["全部標的", "🔥 三盤突破", "⚡ 價量齊揚", "🚀 均線多頭+爆量", "🏆 創20日新高", "🌟 突破60日新高"],
+    ["全部標的", "🔥 三盤突破", "❄️ 三盤跌破", "⚡ 價量齊揚", "🚀 均線多頭+爆量", "🏆 創20日新高", "🌟 突破60日新高"],
     horizontal=True
 )
 
@@ -318,7 +319,7 @@ for item in current_db:
         
     tags = []
     
-    # 條件 1: 三盤突破 (今收 > 昨收 且 今收 > 前天收)
+    # 條件 1: 三盤突破
     is_three_bar_breakout = (close > close_prev1) and (close > close_prev2)
     pass_three_bar = True
     if enable_three_bar_breakout:
@@ -326,6 +327,15 @@ for item in current_db:
             pass_three_bar = False
     if is_three_bar_breakout:
         tags.append("三盤突破")
+
+    # 條件 1-2: 三盤跌破 (今收 < 昨收 且 今收 < 前天收)
+    is_three_bar_breakdown = (close < close_prev1) and (close < close_prev2)
+    pass_three_breakdown = True
+    if enable_three_bar_breakdown:
+        if not is_three_bar_breakdown:
+            pass_three_breakdown = False
+    if is_three_bar_breakdown:
+        tags.append("三盤跌破")
 
     # 條件 2: 均線多頭排列
     pass_ma = True
@@ -367,6 +377,8 @@ for item in current_db:
     pass_quick = True
     if quick_filter == "🔥 三盤突破":
         pass_quick = is_three_bar_breakout
+    elif quick_filter == "❄️ 三盤跌破":
+        pass_quick = is_three_bar_breakdown
     elif quick_filter == "⚡ 價量齊揚":
         pass_quick = (pct_change > 1.5 and volume > prev1['VMA5'])
     elif quick_filter == "🚀 均線多頭+爆量":
@@ -381,7 +393,7 @@ for item in current_db:
             pass_quick = False
 
     # 綜合滿足判定
-    if pass_three_bar and pass_ma and pass_vma and pass_vol and pass_high_custom and pass_quick:
+    if pass_three_bar and pass_three_breakdown and pass_ma and pass_vma and pass_vol and pass_high_custom and pass_quick:
         filtered_rows.append({
             "代號": code,
             "股名": name,
