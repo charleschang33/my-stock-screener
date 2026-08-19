@@ -316,12 +316,11 @@ def show_fear_greed_detail():
 # ==========================================
 st.markdown("<div class='main-header'>🧠 AI 投資資訊站 | 專屬量化選股儀表板</div>", unsafe_allow_html=True)
 
-# 記錄選中的股票代號
 if "selected_stock_code" not in st.session_state:
     st.session_state["selected_stock_code"] = "2330.TW"
 
 # ------------------------------------------
-# Section 0: 大盤、櫃買、期貨多空、選擇權與美股指數看板 (支援紅漲綠跌與點擊連動K線)
+# Section 0: 大盤、櫃買、期貨多空、選擇權與美股指數看板
 # ------------------------------------------
 m_col1, m_col2, m_col3, m_col4, m_col5, m_col6 = st.columns(6)
 
@@ -686,16 +685,16 @@ elif not df_result.empty:
     st.divider()
 
     # ------------------------------------------
-    # Section 5: Plotly 互動式 K 線與多週期切換系統 (已整合大盤與個股)
+    # Section 5: Plotly 互動式 K 線與多週期切換系統
     # ------------------------------------------
     st.subheader("📈 技術分析與多週期圖表")
     
-    # 建立合併選單（包含大盤指數與個股清單）
+    # 修正中文欄位名對應：讀取 df_result 的 "代號" 與 "股名"
     all_view_options = {}
     for idx_item in MARKET_INDICES:
         all_view_options[idx_item["code"]] = f"📊 {idx_item['code']} {idx_item['name']}"
     for _, row in df_result.iterrows():
-        all_view_options[row["code"]] = f"{row['code']} {row['name']}"
+        all_view_options[row["代號"]] = f"{row['代號']} {row['股名']}"
         
     code_list = list(all_view_options.keys())
     current_selected = st.session_state.get("selected_stock_code", code_list[0])
