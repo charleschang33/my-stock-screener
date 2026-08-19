@@ -1157,7 +1157,14 @@ elif not df_result.empty:
         )
         
     c_interval, c_period = chart_tf_map[chart_tf]
-    chart_stock_dict = get_stock_data_source([selected_code], data_source="yfinance", interval=c_interval, period=c_period)
+    # 自動將帶有底線後綴的代號（如 3605_2.TW）還原成真實 Yahoo 代號（如 3605.TW）供 yfinance 抓取
+    real_yf_code = selected_code.split('_')[0] + '.TW' if '_' in selected_code and not selected_code.startswith('^') else selected_code
+    
+    chart_stock_dict = get_stock_data_source([real_yf_code], data_source="yfinance", interval=c_interval, period=c_period)
+    
+    # 讓後續繪圖程式可以對應到正確的 DataFrame key
+    if real_yf_code in chart_stock_dict and selected_code not in chart_stock_dict:
+        chart_stock_dict[selected_code] = chart_stock_dict[real_yf_code]
     
     if selected_code and selected_code in chart_stock_dict:
         df_k = chart_stock_dict[selected_code].copy()
