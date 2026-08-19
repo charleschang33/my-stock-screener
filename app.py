@@ -484,7 +484,7 @@ with col3:
         show_fear_greed_detail()
 
 # ------------------------------------------
-# Section 1.2: 📈 市場漲跌幅排行榜 Top 100 模組
+# Section 1.2: 📈 市場漲跌幅排行榜 Top 100 模組 (已嚴格正負號過濾)
 # ------------------------------------------
 st.markdown("#### 📈 市場漲跌幅排行榜 (Top 100)")
 rank_tab_left, rank_tab_right = st.columns([1, 4])
@@ -497,7 +497,7 @@ base_db_names = [item["name"] for item in STOCK_DATABASE]
 base_db_inds = [item["industry"] for item in STOCK_DATABASE]
 
 full_rank_codes, full_rank_names, full_rank_inds = [], [], []
-for i in range(5):
+for i in range(6):
     for c, n, ind in zip(base_db_codes, base_db_names, base_db_inds):
         full_rank_codes.append(f"{c.split('.')[0]}_{i}.TW" if i > 0 else c)
         full_rank_names.append(f"{n}_{i}" if i > 0 else n)
@@ -517,9 +517,11 @@ df_ranking = pd.DataFrame({
 }).drop_duplicates(subset=["代號"]).reset_index(drop=True)
 
 if "🔥 漲幅最高" in rank_type:
-    df_ranking = df_ranking.sort_values(by="漲跌幅 (%)", ascending=False).head(100)
+    # 嚴格過濾：只保留漲幅 > 0 的股票，由大到小排序
+    df_ranking = df_ranking[df_ranking["涨跌幅 (%)"] > 0].sort_values(by="涨跌幅 (%)", ascending=False).head(100) if "涨跌幅 (%)" in df_ranking.columns else df_ranking[df_ranking["漲跌幅 (%)"] > 0].sort_values(by="漲跌幅 (%)", ascending=False).head(100)
 else:
-    df_ranking = df_ranking.sort_values(by="漲跌幅 (%)", ascending=True).head(100)
+    # 嚴格過濾：只保留跌幅 < 0 的股票，由小到大排序（負數最大即跌幅最重）
+    df_ranking = df_ranking[df_ranking["漲跌幅 (%)"] < 0].sort_values(by="漲跌幅 (%)", ascending=True).head(100)
 
 rank_event = st.dataframe(
     df_ranking.style.format({
