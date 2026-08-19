@@ -215,30 +215,33 @@ timeframe_map = {
 selected_timeframe = st.sidebar.selectbox("⏱️ 分析週期", list(timeframe_map.keys()), index=0)
 interval_code, period_code = timeframe_map[selected_timeframe]
 
-st.sidebar.subheader("1. 均線排列條件")
+st.sidebar.subheader("1. K棒型態選股")
+enable_three_bar_breakout = st.sidebar.checkbox("🔥 三盤突破 (今收 > 昨收 且 今收 > 前日收)", value=False)
+
+st.sidebar.subheader("2. 均線排列條件")
 enable_ma_trend = st.sidebar.checkbox("均線多頭 (Close > MA8 > MA21 > MA55)", value=False)
 enable_vma_trend = st.sidebar.checkbox("成交量均線 VMA5 > VMA13 > VMA34", value=False)
 
-st.sidebar.subheader("2. 價量突破與創高")
+st.sidebar.subheader("3. 價量突破與創高")
 enable_vol_breakout = st.sidebar.checkbox("成交量 > 5日均量 N 倍", value=False)
 vol_mult = st.sidebar.slider("成交量放大倍數", 1.2, 5.0, 1.5, 0.1)
 
 enable_high_custom = st.sidebar.checkbox("自訂收盤價創 N 日新高", value=False)
 high_period = st.sidebar.slider("自訂創高天數 (N)", 5, 120, 20, 5)
 
-st.sidebar.subheader("3. 門檻過濾")
+st.sidebar.subheader("4. 門檻過濾")
 min_price = st.sidebar.number_input("最低股價 (台幣NTD / 美元USD)", value=10.0, step=1.0)
 min_volume = st.sidebar.number_input("最低成交量 (張/股)", value=500 if "台股" in market_choice else 500000, step=100)
 
 
 # ------------------------------------------
-# Section 2: 快捷頁籤與產業過濾 (已將突破60日新高移至最右邊)
+# Section 2: 快捷頁籤與產業過濾
 # ------------------------------------------
 st.subheader("📋 股票篩選結果清單")
 
 quick_filter = st.radio(
     "策略快篩頁籤：",
-    ["全部標的", "🔥 價量齊揚", "🚀 均線多頭+爆量", "🏆 創20日新高", "🌟 突破60日新高"],
+    ["全部標的", "🔥 三盤突破", "⚡ 價量齊揚", "🚀 均線多頭+爆量", "🏆 創20日新高", "🌟 突破60日新高"],
     horizontal=True
 )
 
@@ -289,11 +292,14 @@ for item in current_db:
     df['VMA34'] = df['Volume'].rolling(34, min_periods=1).mean()
     
     curr = df.iloc[-1]
-    prev = df.iloc[-2] if len(df) >= 2 else curr
+    prev1 = df.iloc[-2] if len(df) >= 2 else curr
+    prev2 = df.iloc[-3] if len(df) >= 3 else prev1
     
     close = float(curr['Close'])
-    prev_close = float(prev['Close'])
-    pct_change = ((close - prev_close) / prev_close) * 100 if prev_close > 0 else 0
+    close_prev1 = float(prev1['Close'])
+    close_prev2 = float(prev2['Close'])
+    
+    pct_change = ((close - close_prev1) / close_prev1) * 100 if close_prev1 > 0 else 0
     volume = float(curr['Volume'])
     vol_display = volume / 1000 if "台股" in market_choice else volume
     
@@ -312,7 +318,16 @@ for item in current_db:
         
     tags = []
     
-    # 條件 1: 均線多頭排列
+    # 條件 1: 三盤突破 (今收 > 昨收 且 今收 > 前天收)
+    is_three_bar_breakout = (close > close_prev1) and (close > close_prev2)
+    pass_three_bar = True
+    if enable_three_bar_breakout:
+        if not is_three_bar_breakout:
+            pass_three_bar = False
+    if is_three_bar_breakout:
+        tags.append("三盤突破")
+
+    # 條件 2: 均線多頭排列
     pass_ma = True
     if enable_ma_trend:
         if not (close > curr['MA8'] > curr['MA21'] > curr['MA55']):
@@ -320,7 +335,7 @@ for item in current_db:
         else:
             tags.append("均線多頭")
             
-    # 條件 1-2: 量均線多頭
+    # 條件 2-2: 量均線多頭
     pass_vma = True
     if enable_vma_trend:
         if (curr['VMA5'] > curr['VMA13'] > curr['VMA34']):
@@ -328,15 +343,15 @@ for item in current_db:
         else:
             pass_vma = False
 
-    # 條件 2: 帶量突破
+    # 條件 3: 帶量突破
     pass_vol = True
     if enable_vol_breakout:
-        if prev['VMA5'] > 0 and volume >= (prev['VMA5'] * vol_mult):
+        if prev1['VMA5'] > 0 and volume >= (prev1['VMA5'] * vol_mult):
             tags.append(f"量增 {vol_mult}x")
         else:
             pass_vol = False
 
-    # 條件 2-2: 自訂創 N 日新高
+    # 條件 3-2: 自訂創 N 日新高
     pass_high_custom = True
     if enable_high_custom:
         if len(df) > high_period:
@@ -350,10 +365,12 @@ for item in current_db:
 
     # 快捷頁籤判定
     pass_quick = True
-    if quick_filter == "🔥 價量齊揚":
-        pass_quick = (pct_change > 1.5 and volume > prev['VMA5'])
+    if quick_filter == "🔥 三盤突破":
+        pass_quick = is_three_bar_breakout
+    elif quick_filter == "⚡ 價量齊揚":
+        pass_quick = (pct_change > 1.5 and volume > prev1['VMA5'])
     elif quick_filter == "🚀 均線多頭+爆量":
-        pass_quick = (close > curr['MA8'] > curr['MA21'] and volume >= prev['VMA5'] * 1.3)
+        pass_quick = (close > curr['MA8'] > curr['MA21'] and volume >= prev1['VMA5'] * 1.3)
     elif quick_filter == "🏆 創20日新高":
         if len(df) > 20:
             pass_quick = (close >= df['Close'].iloc[-21:-1].max())
@@ -364,7 +381,7 @@ for item in current_db:
             pass_quick = False
 
     # 綜合滿足判定
-    if pass_ma and pass_vma and pass_vol and pass_high_custom and pass_quick:
+    if pass_three_bar and pass_ma and pass_vma and pass_vol and pass_high_custom and pass_quick:
         filtered_rows.append({
             "代號": code,
             "股名": name,
