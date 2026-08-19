@@ -16,6 +16,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# 注入自訂 CSS，讓卡片有陰影與邊框感
 st.markdown("""
     <style>
     .stApp {
@@ -25,7 +26,15 @@ st.markdown("""
         font-size: 24px;
         font-weight: 700;
         color: #0f172a;
-        margin-bottom: 15px;
+        margin-bottom: 20px;
+    }
+    /* 讓儀表盤區塊呈現白底圓角卡片效果 */
+    div[data-testid="stPlotlyChart"] {
+        background-color: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+        padding: 5px;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -99,44 +108,47 @@ def get_batch_stock_data(ticker_list, interval="1d", period="1y"):
 
 
 # ==========================================
-# 4. 繪製頂部半環形情緒儀表圖 (絕對安全相容寫法)
+# 4. 繪製半圓形彩色儀表盤 (完美還原參考圖)
 # ==========================================
-def create_gauge_chart(title, display_text, pointer_val, min_val=0, max_val=100, steps=None, current_status=""):
+def create_visual_gauge(title, val, min_val, max_val, prefix="", suffix="", status_label="", sub_text="", steps_config=None):
     """
-    使用全正數刻度進行指針渲染，避免 Plotly 負數軸報錯，數值文字直接客製化顯示
+    建立具備彩色弧形階梯與指針的半圓形儀表板
     """
-    try:
-        fig = go.Figure(go.Indicator(
-            mode="gauge+number",
-            value=pointer_val,
-            number={'valueformat': '', 'font': {'size': 1, 'color': 'rgba(0,0,0,0)'}}, # 隱藏底層數字，用標題/註釋展示
-            title={
-                'text': f"<b>{title}</b><br><span style='font-size:28px;font-weight:bold;color:#0f172a;'>{display_text}</span><br><span style='font-size:12px;color:gray'>{current_status}</span>",
-                'font': {'size': 14, 'color': '#334155'}
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number",
+        value=val,
+        number={
+            'prefix': prefix,
+            'suffix': suffix,
+            'font': {'size': 32, 'color': '#0f172a', 'family': 'Arial Black'}
+        },
+        title={
+            'text': f"<b>{title}</b><br><span style='font-size:12px;color:#059669;font-weight:bold;'>{status_label}</span><br><span style='font-size:11px;color:#94a3b8;'>{sub_text}</span>",
+            'font': {'size': 14, 'color': '#334155'}
+        },
+        gauge={
+            'shape': "angular",
+            'axis': {
+                'range': [min_val, max_val],
+                'tickwidth': 1,
+                'tickcolor': "#cbd5e1",
+                'tickmode': 'auto',
+                'nticks': 5
             },
-            gauge={
-                'axis': {'range': [min_val, max_val], 'visible': False},
-                'bar': {'color': "#1e293b", 'width': 0.25},
-                'bgcolor': "white",
-                'borderwidth': 0,
-                'steps': steps if steps else [
-                    {'range': [0, 33], 'color': '#ef4444'},
-                    {'range': [33, 66], 'color': '#f59e0b'},
-                    {'range': [66, 100], 'color': '#22c55e'}
-                ]
-            }
-        ))
-        
-        fig.update_layout(
-            height=190,
-            margin=dict(l=20, r=20, t=20, b=10),
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)'
-        )
-        return fig
-    except Exception:
-        # 降級純文字防護
-        return None
+            'bar': {'color': "#1e293b", 'thickness': 0.18},
+            'bgcolor': "#f1f5f9",
+            'borderwidth': 0,
+            'steps': steps_config
+        }
+    ))
+    
+    fig.update_layout(
+        height=220,
+        margin=dict(l=25, r=25, t=40, b=10),
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)'
+    )
+    return fig
 
 
 # ==========================================
@@ -146,66 +158,59 @@ def create_gauge_chart(title, display_text, pointer_val, min_val=0, max_val=100,
 st.markdown("<div class='main-header'>🧠 AI 投資資訊站 | 專屬量化選股儀表板</div>", unsafe_allow_html=True)
 
 # ------------------------------------------
-# Section 1: 頂部三大市場情緒儀表圖
+# Section 1: 頂部三大半圓形彩色情緒儀表圖
 # ------------------------------------------
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    fig1 = create_gauge_chart(
+    fig1 = create_visual_gauge(
         title="大戶期權多空比",
-        display_text="+27% (偏多)",
-        pointer_val=70,  # 映射到 0~100 刻度
-        min_val=0,
-        max_val=100,
-        current_status="偏多 | 最新更新",
-        steps=[
-            {'range': [0, 35], 'color': '#22c55e'},
-            {'range': [35, 65], 'color': '#f59e0b'},
-            {'range': [65, 100], 'color': '#ef4444'}
+        val=27,
+        min_val=-70,
+        max_val=70,
+        prefix="+",
+        suffix="%",
+        status_label="↑ 偏多 (多方佔優)",
+        sub_text="2026-08-19 更新",
+        steps_config=[
+            {'range': [-70, -20], 'color': '#ef4444'}, # 空方紅
+            {'range': [-20, 20], 'color': '#f59e0b'},  # 中性黃
+            {'range': [20, 70], 'color': '#10b981'}   # 多方綠
         ]
     )
-    if fig1:
-        st.plotly_chart(fig1, use_container_width=True)
-    else:
-        st.metric("大戶期權多空比", "+27%", "偏多")
+    st.plotly_chart(fig1, use_container_width=True)
 
 with col2:
-    fig2 = create_gauge_chart(
+    fig2 = create_visual_gauge(
         title="TW VIX 臺指波動率",
-        display_text="35.5 (高波動)",
-        pointer_val=71, # 35.5 / 50 * 100
+        val=35.5,
         min_val=0,
-        max_val=100,
-        current_status="高波動 | 最新更新",
-        steps=[
-            {'range': [0, 36], 'color': '#22c55e'},
-            {'range': [36, 60], 'color': '#f59e0b'},
-            {'range': [60, 100], 'color': '#ef4444'}
+        max_val=50,
+        status_label="↑ 高波動 (警戒)",
+        sub_text="2026-08-19 更新",
+        steps_config=[
+            {'range': [0, 18], 'color': '#10b981'},   # 低波動安全
+            {'range': [18, 30], 'color': '#f59e0b'},  # 正常
+            {'range': [30, 50], 'color': '#ef4444'}   # 高波動警戒
         ]
     )
-    if fig2:
-        st.plotly_chart(fig2, use_container_width=True)
-    else:
-        st.metric("TW VIX 臺指波動率", "35.5", "高波動")
+    st.plotly_chart(fig2, use_container_width=True)
 
 with col3:
-    fig3 = create_gauge_chart(
-        title="Fear & Greed 恐懼與貪婪",
-        display_text="64 (貪婪)",
-        pointer_val=64,
+    fig3 = create_visual_gauge(
+        title="Fear & Greed CNN 恐懼與貪婪",
+        val=64,
         min_val=0,
         max_val=100,
-        current_status="貪婪 | 最新更新",
-        steps=[
-            {'range': [0, 35], 'color': '#ef4444'},
-            {'range': [35, 65], 'color': '#f59e0b'},
-            {'range': [65, 100], 'color': '#22c55e'}
+        status_label="↑ 貪婪 (情緒熱絡)",
+        sub_text="2026-08-19 23:59",
+        steps_config=[
+            {'range': [0, 35], 'color': '#ef4444'},   # 極度恐慌
+            {'range': [35, 65], 'color': '#f59e0b'},  # 中性
+            {'range': [65, 100], 'color': '#10b981'}  # 貪婪熱絡
         ]
     )
-    if fig3:
-        st.plotly_chart(fig3, use_container_width=True)
-    else:
-        st.metric("恐懼與貪婪指數", "64", "貪婪")
+    st.plotly_chart(fig3, use_container_width=True)
 
 st.divider()
 
