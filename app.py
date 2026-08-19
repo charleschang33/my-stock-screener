@@ -163,8 +163,8 @@ def create_gauge_chart(title, value, suffix="", min_val=-70, max_val=70, steps=N
 # 5. 主畫面 UI 與篩選邏輯
 # ==========================================
 
-# 頂部導覽欄
-st.markdown("<div class="main-header">🧠 🧠 AI 投資資訊站 | 專屬量化選股儀表板</div>", unsafe_allow_html=True)
+# 頂部導覽欄 (已修正單雙引號衝突)
+st.markdown("<div class='main-header'>🧠 AI 投資資訊站 | 專屬量化選股儀表板</div>", unsafe_allow_html=True)
 
 # ------------------------------------------
 # Section 1: 頂部三大市場情緒儀表圖 (頂部看板)
