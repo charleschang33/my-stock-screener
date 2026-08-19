@@ -9,7 +9,7 @@ from datetime import datetime
 import io
 
 # ==========================================
-# 1. 頁面佈局與 CSS 樣式 (包含下拉選單字體放大)
+# 1. 頁面佈局與 CSS 樣式
 # ==========================================
 st.set_page_config(
     page_title="AI 投資資訊站 - 個人量化篩選系統",
@@ -39,7 +39,6 @@ st.markdown("""
     div[data-testid="stDataFrame"] {
         overflow-x: auto;
     }
-    /* 下拉選單輸入框與選項字體放大至 16px 與圖表一致 */
     div[data-baseweb="select"] span {
         font-size: 16px !important;
         font-weight: 600 !important;
@@ -607,12 +606,12 @@ elif not df_result.empty:
         # 取最近 100 根 K 棒繪製
         plot_df = df_k.iloc[-100:].copy()
         
-        # 建立三層子圖 (成交量副圖標題設定為 16px)
+        # 建立三層子圖（加大 vertical_spacing 至 0.08，確保 KD 標題與成交量柱不互相擠壓）
         fig_k = make_subplots(
             rows=3, cols=1,
             shared_xaxes=True,
-            vertical_spacing=0.04,
-            row_heights=[0.58, 0.21, 0.21],
+            vertical_spacing=0.08,
+            row_heights=[0.54, 0.23, 0.23],
             subplot_titles=("", f"<b>成交量 (VMA5 {arrow_vma5} / VMA13 {arrow_vma13} / VMA34 {arrow_vma34})</b>", "<b>KD 指標 (9, 3, 3)</b>")
         )
         
@@ -636,7 +635,7 @@ elif not df_result.empty:
         fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['MA21'], mode='lines', name=f'MA21 {arrow_ma21}', line=dict(color='#ec4899', width=1.5)), row=1, col=1)
         fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['MA55'], mode='lines', name=f'MA55 {arrow_ma55}', line=dict(color='#8b5cf6', width=1.8)), row=1, col=1)
         
-        # 扣抵位置計算與主圖標示（設定為 16px 與標題完全一致）
+        # 扣抵位置計算與主圖標示
         total_len = len(df_k)
         kd_annotations = [
             {"days": 8, "label": "扣8", "color": "#3b82f6"},
@@ -699,9 +698,9 @@ elif not df_result.empty:
         fig_k.add_hline(y=80, line_dash="dot", line_color="#ef4444", line_width=1, row=3, col=1)
         fig_k.add_hline(y=20, line_dash="dot", line_color="#22c55e", line_width=1, row=3, col=1)
         
-        # 全面統一頂部圖例字體為 16px
+        # 圖表高度由 700 增至 740，確保間距充足舒適
         fig_k.update_layout(
-            height=700,
+            height=740,
             xaxis_rangeslider_visible=False,
             margin=dict(l=10, r=10, t=35, b=10),
             legend=dict(
@@ -714,7 +713,6 @@ elif not df_result.empty:
             )
         )
         
-        # 子圖標題字體統一設定為 16px
         for annotation in fig_k['layout']['annotations']:
             annotation['font'] = dict(size=16, color="#334155")
         
