@@ -134,7 +134,29 @@ US_STOCK_DATABASE = [
 
 
 # ==========================================
-# 3. 數據引擎
+# 3. 輔助運算函式 (DMI 指標)
+# ==========================================
+def calculate_dmi(df, period=14):
+    high_diff = df['High'].diff()
+    low_diff = -df['Low'].diff()
+    plus_dm = np.where((high_diff > low_diff) & (high_diff > 0), high_diff, 0.0)
+    minus_dm = np.where((low_diff > high_diff) & (low_diff > 0), low_diff, 0.0)
+    
+    tr1 = df['High'] - df['Low']
+    tr2 = (df['High'] - df['Close'].shift(1)).abs()
+    tr3 = (df['Low'] - df['Close'].shift(1)).abs()
+    tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+    
+    tr_sum = tr.rolling(period, min_periods=1).sum().replace(0, np.nan)
+    p_di = (pd.Series(plus_dm, index=df.index).rolling(period, min_periods=1).sum() / tr_sum * 100).fillna(0)
+    m_di = (pd.Series(minus_dm, index=df.index).rolling(period, min_periods=1).sum() / tr_sum * 100).fillna(0)
+    dx = ((p_di - m_di).abs() / (p_di + m_di).replace(0, np.nan) * 100).fillna(0)
+    adx = dx.rolling(period, min_periods=1).mean().fillna(0)
+    return p_di, m_di, adx
+
+
+# ==========================================
+# 4. 數據引擎
 # ==========================================
 @st.cache_data(ttl=600, show_spinner=False)
 def get_stock_data_source(ticker_list, data_source="yfinance", interval="1d", period="2y"):
@@ -234,7 +256,7 @@ def get_stock_data_source(ticker_list, data_source="yfinance", interval="1d", pe
 
 
 # ==========================================
-# 4. 繪製半圓形彩色儀表盤
+# 5. 繪製半圓形彩色儀表盤
 # ==========================================
 def create_visual_gauge(title, val, min_val, max_val, prefix="", suffix="", status_label="", sub_text="", steps_config=None, label_color="#059669"):
     fig = go.Figure(go.Indicator(
@@ -261,7 +283,7 @@ def create_visual_gauge(title, val, min_val, max_val, prefix="", suffix="", stat
 
 
 # ==========================================
-# 5. 儀表盤點擊彈出明細視窗
+# 6. 儀表盤點擊彈出明細視窗
 # ==========================================
 @st.dialog("📊 大戶期權多空比 - 計算數據明細")
 def show_options_detail():
@@ -323,7 +345,7 @@ def show_fear_greed_detail():
 
 
 # ==========================================
-# 6. 主畫面 UI 與 篩選邏輯
+# 7. 主畫面 UI 與 篩選邏輯
 # ==========================================
 st.markdown("<div class='main-header'>🧠 AI 投資資訊站 | 專屬量化選股儀表板</div>", unsafe_allow_html=True)
 
@@ -617,14 +639,23 @@ st.sidebar.subheader("2. 均線排列條件")
 enable_ma_trend = st.sidebar.checkbox("均線多頭 (MA8 > MA21 > MA55)", value=False)
 enable_vma_trend = st.sidebar.checkbox("成交量均線 (VMA5 > VMA13 > VMA34)", value=False)
 
-st.sidebar.subheader("3. 價量突破與創高")
+# 新增 DMI 圖片條件設定
+st.sidebar.subheader("3. 🎯 DMI 多空指標條件 (參照自訂)")
+enable_dmi_pdi_day = st.sidebar.checkbox("DMI +DI(日) >= 門檻", value=False)
+dmi_pdi_min_day = st.sidebar.number_input("+DI(日) 最低門檻", value=37.0, step=1.0)
+
+enable_dmi_week_bull = st.sidebar.checkbox("+DI(週) > -DI(週)", value=False)
+enable_dmi_week_adx = st.sidebar.checkbox("ADX(週) > -DI(週)", value=False)
+enable_week_ma5_ma20 = st.sidebar.checkbox("週均線 5MA > 20MA", value=False)
+
+st.sidebar.subheader("4. 價量突破與創高")
 enable_vol_breakout = st.sidebar.checkbox("成交量 > 5日均量 N 倍", value=False)
 vol_mult = st.sidebar.slider("成交量放大倍數", 1.2, 5.0, 1.5, 0.1)
 
 enable_high_custom = st.sidebar.checkbox("自訂收盤價創 N 日新高", value=False)
 high_period = st.sidebar.slider("自訂創高天數 (N)", 5, 120, 20, 5)
 
-st.sidebar.subheader("4. 門檻過濾")
+st.sidebar.subheader("5. 門檻過濾")
 min_price = st.sidebar.number_input("最低股價 (台幣NTD / 美元USD)", value=10.0, step=1.0)
 min_volume = st.sidebar.number_input("最低成交量 (張/股)", value=500 if "台股" in market_choice else 500000, step=100)
 
@@ -636,7 +667,7 @@ st.subheader("📋 股票篩選結果清單")
 
 quick_filter = st.radio(
     "策略快篩頁籤：",
-    ["全部標的", "🔥 三盤突破", "❄️ 三盤跌破", "⚡ 價量齊揚", "🚀 均線多頭+爆量", "🏆 創20日新高", "🌟 突破60日新高"],
+    ["全部標的", "🎯 DMI強勢波段", "🔥 三盤突破", "❄️ 三盤跌破", "⚡ 價量齊揚", "🚀 均線多頭+爆量", "🏆 創20日新高", "🌟 突破60日新高"],
     horizontal=True
 )
 
@@ -651,10 +682,15 @@ with col_ind:
 
 
 # ------------------------------------------
-# Section 3: 執行篩選邏輯
+# Section 3: 執行篩選邏輯 (支援週線 DMI 跨週期運算)
 # ------------------------------------------
 target_tickers = [item["code"] for item in current_db]
 raw_stock_data = get_stock_data_source(target_tickers, data_source=data_source, interval=interval_code, period=period_code)
+
+# 取得週線資料以計算週線 DMI 與週 5MA/20MA
+raw_weekly_data = {}
+if enable_dmi_week_bull or enable_dmi_week_adx or enable_week_ma5_ma20 or quick_filter == "🎯 DMI強勢波段":
+    raw_weekly_data = get_stock_data_source(target_tickers, data_source="yfinance", interval="1wk", period="2y")
 
 if data_source == "twstock" and len(raw_stock_data) == 0:
     st.error("🚨 台灣證交所伺服器暫時阻擋了雲端連線請求，請將左側【資料來源】切換為 **`yfinance`** 即可即時取得報價！")
@@ -682,6 +718,12 @@ for item in current_db:
     df['VMA13'] = df['Volume'].rolling(13, min_periods=1).mean()
     df['VMA34'] = df['Volume'].rolling(34, min_periods=1).mean()
     
+    # 計算日線 DMI
+    p_di_day, m_di_day, adx_day = calculate_dmi(df, 14)
+    df['Plus_DI'] = p_di_day
+    df['Minus_DI'] = m_di_day
+    df['ADX'] = adx_day
+    
     curr = df.iloc[-1]
     prev1 = df.iloc[-2] if len(df) >= 2 else curr
     prev2 = df.iloc[-3] if len(df) >= 3 else prev1
@@ -707,7 +749,7 @@ for item in current_db:
         
     tags = []
     
-    # 條件 1: 三盤突破
+    # 條件 1: 三盤突破 / 跌破
     is_three_bar_breakout = (close > close_prev1) and (close > close_prev2)
     pass_three_bar = True
     if enable_three_bar_breakout:
@@ -716,16 +758,15 @@ for item in current_db:
     if is_three_bar_breakout:
         tags.append("三盤突破")
 
-    # 條件 1-2: 三盤跌破
     is_three_bar_breakdown = (close < close_prev1) and (close < close_prev2)
     pass_three_breakdown = True
     if enable_three_bar_breakdown:
         if not is_three_bar_breakdown:
-            pass_three_bar = False
+            pass_three_breakdown = False
     if is_three_bar_breakdown:
         tags.append("三盤跌破")
 
-    # 條件 2: 均線多頭排列 (MA8 > MA21 > MA55)
+    # 條件 2: 均線多頭
     is_ma_aligned = (curr['MA8'] > curr['MA21'] > curr['MA55'])
     pass_ma = True
     if enable_ma_trend:
@@ -734,7 +775,6 @@ for item in current_db:
     if is_ma_aligned:
         tags.append("均線多頭")
             
-    # 條件 2-2: 量均線多頭 (VMA5 > VMA13 > VMA34)
     is_vma_aligned = (curr['VMA5'] > curr['VMA13'] > curr['VMA34'])
     pass_vma = True
     if enable_vma_trend:
@@ -743,7 +783,58 @@ for item in current_db:
     if is_vma_aligned:
         tags.append("量均多頭")
 
-    # 條件 3: 帶量突破
+    # 條件 3: DMI 日線與週線條件檢查
+    # 3-1: +DI(日) >= 37
+    pass_dmi_day = True
+    if enable_dmi_pdi_day:
+        if curr['Plus_DI'] >= dmi_pdi_min_day:
+            tags.append(f"+DI(日)≥{int(dmi_pdi_min_day)}")
+        else:
+            pass_dmi_day = False
+
+    # 3-2: 週線指標判定
+    pass_dmi_wk_bull = True
+    pass_dmi_wk_adx = True
+    pass_wk_ma = True
+    
+    is_dmi_wk_bull = False
+    is_dmi_wk_adx = False
+    is_wk_ma_aligned = False
+    
+    if code in raw_weekly_data and len(raw_weekly_data[code]) >= 5:
+        df_wk = raw_weekly_data[code].copy()
+        p_di_wk, m_di_wk, adx_wk = calculate_dmi(df_wk, 14)
+        df_wk['Plus_DI'] = p_di_wk
+        df_wk['Minus_DI'] = m_di_wk
+        df_wk['ADX'] = adx_wk
+        df_wk['MA5'] = df_wk['Close'].rolling(5, min_periods=1).mean()
+        df_wk['MA20'] = df_wk['Close'].rolling(20, min_periods=1).mean()
+        
+        curr_wk = df_wk.iloc[-1]
+        
+        is_dmi_wk_bull = (curr_wk['Plus_DI'] > curr_wk['Minus_DI'])
+        is_dmi_wk_adx = (curr_wk['ADX'] > curr_wk['Minus_DI'])
+        is_wk_ma_aligned = (curr_wk['MA5'] > curr_wk['MA20'])
+        
+        if enable_dmi_week_bull:
+            if is_dmi_wk_bull:
+                tags.append("+DI(週)>-DI(週)")
+            else:
+                pass_dmi_wk_bull = False
+                
+        if enable_dmi_week_adx:
+            if is_dmi_wk_adx:
+                tags.append("ADX(週)>-DI(週)")
+            else:
+                pass_dmi_wk_adx = False
+                
+        if enable_week_ma5_ma20:
+            if is_wk_ma_aligned:
+                tags.append("週5MA>20MA")
+            else:
+                pass_wk_ma = False
+
+    # 條件 4: 帶量突破
     pass_vol = True
     if enable_vol_breakout:
         if prev1['VMA5'] > 0 and volume >= (prev1['VMA5'] * vol_mult):
@@ -751,7 +842,6 @@ for item in current_db:
         else:
             pass_vol = False
 
-    # 條件 3-2: 自訂創 N 日新高
     pass_high_custom = True
     if enable_high_custom:
         if len(df) > high_period:
@@ -765,7 +855,9 @@ for item in current_db:
 
     # 快捷頁籤判定
     pass_quick = True
-    if quick_filter == "🔥 三盤突破":
+    if quick_filter == "🎯 DMI強勢波段":
+        pass_quick = (curr['Plus_DI'] >= 30 and is_dmi_wk_bull and is_dmi_wk_adx and is_wk_ma_aligned)
+    elif quick_filter == "🔥 三盤突破":
         pass_quick = is_three_bar_breakout
     elif quick_filter == "❄️ 三盤跌破":
         pass_quick = is_three_bar_breakdown
@@ -782,12 +874,13 @@ for item in current_db:
         else:
             pass_quick = False
 
-    if pass_three_bar and pass_three_breakdown and pass_ma and pass_vma and pass_vol and pass_high_custom and pass_quick:
+    if pass_three_bar and pass_three_breakdown and pass_ma and pass_vma and pass_vol and pass_high_custom and pass_dmi_day and pass_dmi_wk_bull and pass_dmi_wk_adx and pass_wk_ma and pass_quick:
         filtered_rows.append({
             "代號": code,
             "股名": name,
             "最新股價": round(close, 2),
             "漲跌幅 (%)": round(pct_change, 2),
+            "+DI (日)": round(curr['Plus_DI'], 1),
             "成交量 (張)" if "台股" in market_choice else "成交量 (股)": int(vol_display),
             "產業標籤": industry,
             "題材/特徵": theme,
@@ -823,6 +916,7 @@ elif not df_result.empty:
         df_result.style.format({
             "最新股價": "{:.2f}",
             "漲跌幅 (%)": "{:+.2f}%",
+            "+DI (日)": "{:.1f}",
             vol_col_name: "{:,}"
         }),
         use_container_width=True,
@@ -834,6 +928,7 @@ elif not df_result.empty:
             "股名": st.column_config.TextColumn("股名", width="small"),
             "最新股價": st.column_config.NumberColumn("最新股價", width="small"),
             "漲跌幅 (%)": st.column_config.NumberColumn("漲跌幅 (%)", width="small"),
+            "+DI (日)": st.column_config.NumberColumn("+DI (日)", width="small"),
             vol_col_name: st.column_config.NumberColumn(vol_col_name, width="medium"),
             "產業標籤": st.column_config.TextColumn("產業標籤", width="medium"),
             "題材/特徵": st.column_config.TextColumn("題材/特徵", width="large"),
@@ -900,7 +995,7 @@ elif not df_result.empty:
     with col_ind_sel:
         indicator_choice = st.selectbox(
             "📊 副圖技術指標：",
-            ["KD 指標 (9,3,3)", "RSI 強弱指標 (6,12)", "MACD 指標 (12,26,9)", "DMI 趨向指標 (14)"],
+            ["DMI 趨向指標 (14)", "KD 指標 (9,3,3)", "RSI 強弱指標 (6,12)", "MACD 指標 (12,26,9)"],
             index=0
         )
         
@@ -911,17 +1006,15 @@ elif not df_result.empty:
         df_k = chart_stock_dict[selected_code].copy()
         
         if not df_k.empty and 'Close' in df_k.columns and len(df_k) >= 2:
-            # 1. 價格均線 (MA8, MA21, MA55)
             df_k['MA8'] = df_k['Close'].rolling(8, min_periods=1).mean()
             df_k['MA21'] = df_k['Close'].rolling(21, min_periods=1).mean()
             df_k['MA55'] = df_k['Close'].rolling(55, min_periods=1).mean()
             
-            # 2. 成交量均線 (VMA5, VMA13, VMA34)
             df_k['VMA5'] = df_k['Volume'].rolling(5, min_periods=1).mean()
             df_k['VMA13'] = df_k['Volume'].rolling(13, min_periods=1).mean()
             df_k['VMA34'] = df_k['Volume'].rolling(34, min_periods=1).mean()
             
-            # 3. 計算 KD 指標 (9, 3, 3)
+            # KD
             low_min = df_k['Low'].rolling(9, min_periods=1).min()
             high_max = df_k['High'].rolling(9, min_periods=1).max()
             rsv = ((df_k['Close'] - low_min) / (high_max - low_min).replace(0, np.nan)) * 100
@@ -936,7 +1029,7 @@ elif not df_result.empty:
             df_k['K'] = k_list[1:]
             df_k['D'] = d_list[1:]
 
-            # 4. 計算 RSI 指標 (6, 12)
+            # RSI
             delta = df_k['Close'].diff()
             gain = (delta.where(delta > 0, 0)).rolling(window=6, min_periods=1).mean()
             loss = (-delta.where(delta < 0, 0)).rolling(window=6, min_periods=1).mean()
@@ -948,29 +1041,18 @@ elif not df_result.empty:
             rs12 = gain12 / loss12.replace(0, np.nan)
             df_k['RSI12'] = (100 - (100 / (1 + rs12))).fillna(50)
 
-            # 5. 計算 MACD (12, 26, 9)
+            # MACD
             exp12 = df_k['Close'].ewm(span=12, adjust=False).mean()
             exp26 = df_k['Close'].ewm(span=26, adjust=False).mean()
             df_k['DIF'] = exp12 - exp26
             df_k['MACD'] = df_k['DIF'].ewm(span=9, adjust=False).mean()
             df_k['OSC'] = df_k['DIF'] - df_k['MACD']
 
-            # 6. 計算 DMI 指標 (14)
-            high_diff = df_k['High'].diff()
-            low_diff = -df_k['Low'].diff()
-            plus_dm = np.where((high_diff > low_diff) & (high_diff > 0), high_diff, 0.0)
-            minus_dm = np.where((low_diff > high_diff) & (low_diff > 0), low_diff, 0.0)
-            
-            tr1 = df_k['High'] - df_k['Low']
-            tr2 = (df_k['High'] - df_k['Close'].shift(1)).abs()
-            tr3 = (df_k['Low'] - df_k['Close'].shift(1)).abs()
-            tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
-            
-            tr14 = tr.rolling(14, min_periods=1).sum().replace(0, np.nan)
-            df_k['Plus_DI'] = (pd.Series(plus_dm, index=df_k.index).rolling(14, min_periods=1).sum() / tr14 * 100).fillna(0)
-            df_k['Minus_DI'] = (pd.Series(minus_dm, index=df_k.index).rolling(14, min_periods=1).sum() / tr14 * 100).fillna(0)
-            dx = ((df_k['Plus_DI'] - df_k['Minus_DI']).abs() / (df_k['Plus_DI'] + df_k['Minus_DI']).replace(0, np.nan) * 100).fillna(0)
-            df_k['ADX'] = dx.rolling(14, min_periods=1).mean().fillna(0)
+            # DMI
+            p_di, m_di, adx = calculate_dmi(df_k, 14)
+            df_k['Plus_DI'] = p_di
+            df_k['Minus_DI'] = m_di
+            df_k['ADX'] = adx
             
             curr_row = df_k.iloc[-1]
             prev_row = df_k.iloc[-2] if len(df_k) >= 2 else curr_row
@@ -1061,8 +1143,14 @@ elif not df_result.empty:
                 row=2, col=1
             )
             
-            # 3. 第 3 層副圖：依使用者選擇動態繪製 KD / RSI / MACD / DMI
-            if "KD" in indicator_choice:
+            # 3. 第 3 層副圖
+            if "DMI" in indicator_choice:
+                fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['Plus_DI'], mode='lines', name='+DI (多方)', line=dict(color='#ef4444', width=1.5)), row=3, col=1)
+                fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['Minus_DI'], mode='lines', name='-DI (空方)', line=dict(color='#22c55e', width=1.5)), row=3, col=1)
+                fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['ADX'], mode='lines', name='ADX (趨勢強度)', line=dict(color='#f59e0b', width=1.5)), row=3, col=1)
+                fig_k.add_hline(y=25, line_dash="dot", line_color="#94a3b8", line_width=1, row=3, col=1)
+
+            elif "KD" in indicator_choice:
                 fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['K'], mode='lines', name='K值', line=dict(color='#f59e0b', width=1.5)), row=3, col=1)
                 fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['D'], mode='lines', name='D值', line=dict(color='#3b82f6', width=1.5)), row=3, col=1)
                 fig_k.add_hline(y=80, line_dash="dot", line_color="#ef4444", line_width=1, row=3, col=1)
@@ -1080,12 +1168,6 @@ elif not df_result.empty:
                 fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['DIF'], mode='lines', name='DIF快線', line=dict(color='#f59e0b', width=1.5)), row=3, col=1)
                 fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['MACD'], mode='lines', name='MACD慢線', line=dict(color='#3b82f6', width=1.5)), row=3, col=1)
                 fig_k.add_hline(y=0, line_dash="solid", line_color="#cbd5e1", line_width=1, row=3, col=1)
-
-            elif "DMI" in indicator_choice:
-                fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['Plus_DI'], mode='lines', name='+DI (多方)', line=dict(color='#ef4444', width=1.5)), row=3, col=1)
-                fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['Minus_DI'], mode='lines', name='-DI (空方)', line=dict(color='#22c55e', width=1.5)), row=3, col=1)
-                fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['ADX'], mode='lines', name='ADX (趨勢強度)', line=dict(color='#f59e0b', width=1.5)), row=3, col=1)
-                fig_k.add_hline(y=25, line_dash="dot", line_color="#94a3b8", line_width=1, row=3, col=1)
             
             fig_k.update_layout(
                 height=740,
