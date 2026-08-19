@@ -170,7 +170,7 @@ def create_visual_gauge(title, val, min_val, max_val, prefix="", suffix="", stat
 
 
 # ==========================================
-# 5. 儀表盤點擊彈出明細視窗 (Dialog Modals)
+# 5. 儀表盤點擊彈出明細視窗
 # ==========================================
 @st.dialog("📊 大戶期權多空比 - 計算數據明細")
 def show_options_detail():
@@ -186,10 +186,6 @@ def show_options_detail():
     st.markdown("""
     **計算邏輯：**
     $$\\text{大戶多空比} = \\frac{\\text{大戶多方留倉口數} - \\text{大戶空方留倉口數}}{\\text{大戶總留倉部位}} \\times 100\\%$$
-    * **數值解讀**：
-      * **> +20%**：大戶籌碼明顯偏多，有利波段延續。
-      * **-20% ~ +20%**：處於多空拉鋸震盪區間。
-      * **< -20%**：空方避險或主跌動能轉強。
     """)
     
     df_detail = pd.DataFrame({
@@ -211,16 +207,6 @@ def show_vix_detail():
     col_a.metric("即時 TW VIX", "35.50", "高波動警戒")
     col_b.metric("20日均值", "24.10", "常態基準")
     col_b.metric("60日最高值", "42.80", "歷史壓力")
-    
-    st.markdown("---")
-    st.markdown("""
-    **計算邏輯：**
-    * TW VIX 由近月與次月臺指選擇權全市場履約價之加權隱含波動率計算而得，代表市場預期未來 30 天的年化波動幅度。
-    * **波動區間判定：**
-      * **VIX < 18**：市場處於低波動穩定上升期。
-      * **18 ~ 30**：正常波動區間。
-      * **VIX > 30**：恐慌/劇烈震盪期，易出現急跌或急拉軋空。
-    """)
 
 
 @st.dialog("🧭 CNN 恐懼與貪婪指數 - 7 大組成因子")
@@ -243,7 +229,6 @@ def show_fear_greed_detail():
         "情緒等級": ["極度貪婪", "貪婪", "貪婪", "中性偏多", "中性", "中性偏多", "中性"]
     })
     st.table(df_fg)
-    st.info("💡 綜合加權總分：**64 分 (貪婪 Greed)**，代表市場風險偏好較高，多方佔優。")
 
 
 # ==========================================
@@ -252,7 +237,7 @@ def show_fear_greed_detail():
 st.markdown("<div class='main-header'>🧠 AI 投資資訊站 | 專屬量化選股儀表板</div>", unsafe_allow_html=True)
 
 # ------------------------------------------
-# Section 1: 頂部三大儀表圖 (附點擊查看按鈕)
+# Section 1: 頂部三大儀表圖
 # ------------------------------------------
 col1, col2, col3 = st.columns(3)
 
@@ -284,7 +269,6 @@ st.divider()
 # ------------------------------------------
 st.sidebar.header("⚙️ 篩選條件設定")
 
-# 1. 市場與資料源選擇
 market_choice = st.sidebar.radio("選擇市場", ["台股 (TW)", "美股 (US)"], index=0)
 
 if "台股" in market_choice:
@@ -426,7 +410,7 @@ for item in current_db:
     if is_three_bar_breakdown:
         tags.append("三盤跌破")
 
-    # 條件 2: 均線多頭排列 (MA8 > MA21 > MA55)
+    # 條件 2: 均線多頭排列
     is_ma_aligned = (curr['MA8'] > curr['MA21'] > curr['MA55'])
     pass_ma = True
     if enable_ma_trend:
@@ -435,7 +419,7 @@ for item in current_db:
     if is_ma_aligned:
         tags.append("均線多頭")
             
-    # 條件 2-2: 量均線多頭 (VMA5 > VMA13 > VMA34)
+    # 條件 2-2: 量均線多頭
     is_vma_aligned = (curr['VMA5'] > curr['VMA13'] > curr['VMA34'])
     pass_vma = True
     if enable_vma_trend:
@@ -497,7 +481,7 @@ for item in current_db:
         })
 
 # ------------------------------------------
-# Section 4: 表格呈現（支援點選行自動聯動切換圖表）
+# Section 4: 表格呈現（點選自動聯動圖表）
 # ------------------------------------------
 df_result = pd.DataFrame(filtered_rows)
 
@@ -514,7 +498,6 @@ with col_export:
             type="primary"
         )
 
-# 記錄目前選中的股票代號
 if "selected_stock_code" not in st.session_state:
     st.session_state["selected_stock_code"] = "2330.TW" if "台股" in market_choice else "NVDA"
 
@@ -525,7 +508,6 @@ elif not df_result.empty:
     
     vol_col_name = "成交量 (張)" if "台股" in market_choice else "成交量 (股)"
     
-    # 啟用 on_select 互動事件
     event = st.dataframe(
         df_result.style.format({
             "最新股價": "{:.2f}",
@@ -548,7 +530,6 @@ elif not df_result.empty:
         }
     )
     
-    # 點擊表格任一行時更新選取的股票
     if event and event.selection and event.selection.rows:
         selected_idx = event.selection.rows[0]
         st.session_state["selected_stock_code"] = df_result.iloc[selected_idx]["代號"]
@@ -556,11 +537,10 @@ elif not df_result.empty:
     st.divider()
 
     # ------------------------------------------
-    # Section 5: Plotly 互動式 K 線與多指標系統
+    # Section 5: Plotly 互動式 K 線、均線扣抵與多指標系統
     # ------------------------------------------
     st.subheader("📈 個股技術分析與指標圖表")
     
-    # 建立「代號 + 股名」選項字典映射
     code_to_name = {row["代號"]: row["股名"] for _, row in df_result.iterrows()}
     display_options = [f"{c} {code_to_name.get(c, '')}" for c in df_result["代號"].tolist()]
     code_list = df_result["代號"].tolist()
@@ -568,26 +548,23 @@ elif not df_result.empty:
     current_selected = st.session_state.get("selected_stock_code", code_list[0])
     default_idx = code_list.index(current_selected) if current_selected in code_list else 0
     
-    # 支援代號與股名一起顯示的下拉選單
     selected_display = st.selectbox(
         "目前檢視個股（可直接點上方表格或此處切換）：",
         display_options,
         index=default_idx
     )
-    
-    # 解析出純代號
     selected_code = selected_display.split(" ")[0]
     st.session_state["selected_stock_code"] = selected_code
     
     if selected_code and selected_code in raw_stock_data:
         df_k = raw_stock_data[selected_code].copy()
         
-        # 1. 價格均線 (保留 MA8, MA21, MA55)
+        # 1. 價格均線 (MA8, MA21, MA55)
         df_k['MA8'] = df_k['Close'].rolling(8, min_periods=1).mean()
         df_k['MA21'] = df_k['Close'].rolling(21, min_periods=1).mean()
         df_k['MA55'] = df_k['Close'].rolling(55, min_periods=1).mean()
         
-        # 2. 成交量均線 (改為 5 均量, 13 均量, 34 均量)
+        # 2. 成交量均線 (VMA5, VMA13, VMA34)
         df_k['VMA5'] = df_k['Volume'].rolling(5, min_periods=1).mean()
         df_k['VMA13'] = df_k['Volume'].rolling(13, min_periods=1).mean()
         df_k['VMA34'] = df_k['Volume'].rolling(34, min_periods=1).mean()
@@ -607,8 +584,20 @@ elif not df_result.empty:
         df_k['K'] = k_list[1:]
         df_k['D'] = d_list[1:]
         
-        # 取最近 100 根 K 棒展示
-        df_k = df_k.iloc[-100:]
+        # 判斷 MA 與 VMA 最新斜率與箭頭方向 (與前一根比較)
+        curr_row = df_k.iloc[-1]
+        prev_row = df_k.iloc[-2] if len(df_k) >= 2 else curr_row
+        
+        arrow_ma8 = "↑" if curr_row['MA8'] >= prev_row['MA8'] else "↓"
+        arrow_ma21 = "↑" if curr_row['MA21'] >= prev_row['MA21'] else "↓"
+        arrow_ma55 = "↑" if curr_row['MA55'] >= prev_row['MA55'] else "↓"
+        
+        arrow_vma5 = "↑" if curr_row['VMA5'] >= prev_row['VMA5'] else "↓"
+        arrow_vma13 = "↑" if curr_row['VMA13'] >= prev_row['VMA13'] else "↓"
+        arrow_vma34 = "↑" if curr_row['VMA34'] >= prev_row['VMA34'] else "↓"
+        
+        # 取最近 100 根 K 棒繪製
+        plot_df = df_k.iloc[-100:].copy()
         
         # 建立三層子圖
         fig_k = make_subplots(
@@ -616,17 +605,17 @@ elif not df_result.empty:
             shared_xaxes=True,
             vertical_spacing=0.04,
             row_heights=[0.58, 0.21, 0.21],
-            subplot_titles=("", "成交量 (VMA5 / VMA13 / VMA34)", "KD 指標 (9, 3, 3)")
+            subplot_titles=("", f"成交量 (VMA5 {arrow_vma5} / VMA13 {arrow_vma13} / VMA34 {arrow_vma34})", "KD 指標 (9, 3, 3)")
         )
         
-        # 1. K線圖主圖
+        # 1. 主圖：K 線
         fig_k.add_trace(
             go.Candlestick(
-                x=df_k.index,
-                open=df_k['Open'],
-                high=df_k['High'],
-                low=df_k['Low'],
-                close=df_k['Close'],
+                x=plot_df.index,
+                open=plot_df['Open'],
+                high=plot_df['High'],
+                low=plot_df['Low'],
+                close=plot_df['Close'],
                 name="K線",
                 increasing_line_color='#ef4444',
                 decreasing_line_color='#22c55e'
@@ -634,46 +623,77 @@ elif not df_result.empty:
             row=1, col=1
         )
         
-        # 均線疊加 (MA8, MA21, MA55)
-        fig_k.add_trace(go.Scatter(x=df_k.index, y=df_k['MA8'], mode='lines', name='MA8', line=dict(color='#3b82f6', width=1.3)), row=1, col=1)
-        fig_k.add_trace(go.Scatter(x=df_k.index, y=df_k['MA21'], mode='lines', name='MA21', line=dict(color='#ec4899', width=1.5)), row=1, col=1)
-        fig_k.add_trace(go.Scatter(x=df_k.index, y=df_k['MA55'], mode='lines', name='MA55', line=dict(color='#8b5cf6', width=1.8)), row=1, col=1)
+        # 主圖：MA8, MA21, MA55 均線（帶有 ↑ / ↓ 箭頭）
+        fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['MA8'], mode='lines', name=f'MA8 {arrow_ma8}', line=dict(color='#3b82f6', width=1.3)), row=1, col=1)
+        fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['MA21'], mode='lines', name=f'MA21 {arrow_ma21}', line=dict(color='#ec4899', width=1.5)), row=1, col=1)
+        fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['MA55'], mode='lines', name=f'MA55 {arrow_ma55}', line=dict(color='#8b5cf6', width=1.8)), row=1, col=1)
         
-        # 2. 成交量副圖 (5 均量, 13 均量, 34 均量)
-        v_colors = ['#ef4444' if c >= o else '#22c55e' for c, o in zip(df_k['Close'], df_k['Open'])]
+        # 扣抵位置計算與主圖標示 (扣8、扣21、扣55)
+        total_len = len(df_k)
+        kd_annotations = [
+            {"days": 8, "label": "扣8", "color": "#3b82f6"},
+            {"days": 21, "label": "扣21", "color": "#ec4899"},
+            {"days": 55, "label": "扣55", "color": "#8b5cf6"}
+        ]
+        
+        for kd in kd_annotations:
+            d = kd["days"]
+            if total_len >= d:
+                kd_row = df_k.iloc[-d]
+                kd_date = kd_row.name
+                kd_price = kd_row['Close']
+                
+                if kd_date in plot_df.index:
+                    # 扣抵點圓點標記
+                    fig_k.add_trace(
+                        go.Scatter(
+                            x=[kd_date],
+                            y=[kd_price],
+                            mode='markers+text',
+                            name=f'{kd["label"]} ({kd_price:.1f})',
+                            text=[f" ◄ {kd['label']}"],
+                            textposition="middle right",
+                            textfont=dict(color=kd["color"], size=11, family="Arial Black"),
+                            marker=dict(size=8, color=kd["color"], symbol="circle-open", line=dict(width=2)),
+                            showlegend=False
+                        ),
+                        row=1, col=1
+                    )
+        
+        # 2. 副圖：成交量與 VMA5, VMA13, VMA34（帶有 ↑ / ↓ 箭頭）
+        v_colors = ['#ef4444' if c >= o else '#22c55e' for c, o in zip(plot_df['Close'], plot_df['Open'])]
         fig_k.add_trace(
-            go.Bar(x=df_k.index, y=df_k['Volume'], name="成交量", marker_color=v_colors, showlegend=False),
+            go.Bar(x=plot_df.index, y=plot_df['Volume'], name="成交量", marker_color=v_colors, showlegend=False),
             row=2, col=1
         )
         fig_k.add_trace(
-            go.Scatter(x=df_k.index, y=df_k['VMA5'], mode='lines', name='5 均量', line=dict(color='#f97316', width=1.2)),
+            go.Scatter(x=plot_df.index, y=plot_df['VMA5'], mode='lines', name=f'VMA5 {arrow_vma5}', line=dict(color='#f97316', width=1.3)),
             row=2, col=1
         )
         fig_k.add_trace(
-            go.Scatter(x=df_k.index, y=df_k['VMA13'], mode='lines', name='13 均量', line=dict(color='#06b6d4', width=1.2)),
+            go.Scatter(x=plot_df.index, y=plot_df['VMA13'], mode='lines', name=f'VMA13 {arrow_vma13}', line=dict(color='#06b6d4', width=1.3)),
             row=2, col=1
         )
         fig_k.add_trace(
-            go.Scatter(x=df_k.index, y=df_k['VMA34'], mode='lines', name='34 均量', line=dict(color='#10b981', width=1.2)),
+            go.Scatter(x=plot_df.index, y=plot_df['VMA34'], mode='lines', name=f'VMA34 {arrow_vma34}', line=dict(color='#10b981', width=1.3)),
             row=2, col=1
         )
         
-        # 3. KD 指標副圖
+        # 3. 副圖：KD 指標
         fig_k.add_trace(
-            go.Scatter(x=df_k.index, y=df_k['K'], mode='lines', name='K值', line=dict(color='#f59e0b', width=1.5), showlegend=False),
+            go.Scatter(x=plot_df.index, y=plot_df['K'], mode='lines', name='K值', line=dict(color='#f59e0b', width=1.5), showlegend=False),
             row=3, col=1
         )
         fig_k.add_trace(
-            go.Scatter(x=df_k.index, y=df_k['D'], mode='lines', name='D值', line=dict(color='#3b82f6', width=1.5), showlegend=False),
+            go.Scatter(x=plot_df.index, y=plot_df['D'], mode='lines', name='D值', line=dict(color='#3b82f6', width=1.5), showlegend=False),
             row=3, col=1
         )
         
-        # KD 超買超賣水平線
         fig_k.add_hline(y=80, line_dash="dot", line_color="#ef4444", line_width=1, row=3, col=1)
         fig_k.add_hline(y=20, line_dash="dot", line_color="#22c55e", line_width=1, row=3, col=1)
         
         fig_k.update_layout(
-            height=680,
+            height=700,
             xaxis_rangeslider_visible=False,
             margin=dict(l=10, r=10, t=25, b=10),
             legend=dict(
