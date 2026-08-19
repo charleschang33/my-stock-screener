@@ -631,18 +631,7 @@ timeframe_map = {
 selected_timeframe = st.sidebar.selectbox("⏱️ 選股分析週期", list(timeframe_map.keys()), index=0)
 interval_code, period_code = timeframe_map[selected_timeframe]
 
-st.sidebar.subheader("1. 🎓 大師選股：朱家泓 (多頭排列與量價發散)")
-enable_master_zhujiahong = st.sidebar.checkbox("啟用朱家泓老師波段多頭條件", value=False)
-zhujiahong_ma_check = st.sidebar.checkbox("均線多頭發散 (MA8 > MA21 > MA55)", value=True)
-zhujiahong_vol_check = st.sidebar.checkbox("量價發散 (成交量大於5MA/13MA)", value=True)
-
-st.sidebar.subheader("2. 🎓 大師選股：點靈 (廖崧沂)")
-enable_master_dianling = st.sidebar.checkbox("啟用點靈講義過濾條件", value=False)
-min_master_price = st.sidebar.number_input("最低股價 (元)", value=100.0, step=10.0)
-min_master_vol = st.sidebar.number_input("昨日成交量最低 (張)", value=1000, step=100)
-min_master_cap = st.sidebar.number_input("總市值最低 (億元)", value=20.0, step=5.0)
-
-st.sidebar.subheader("3. 🚀 基本面飆股條件")
+st.sidebar.subheader("1. 🚀 基本面飆股條件")
 enable_rev_grow = st.sidebar.checkbox("月營收年增率 (YoY) >= 20%", value=False)
 min_rev_yoy = st.sidebar.number_input("營收年增門檻 (%)", value=20.0, step=5.0)
 
@@ -655,7 +644,7 @@ min_csr = st.sidebar.number_input("最低 CSR 門檻", value=0.5, step=0.1)
 enable_clg = st.sidebar.checkbox("合約負債年成長 (CLG) >= 20%", value=False)
 min_clg = st.sidebar.number_input("最低 CLG 門檻 (%)", value=20.0, step=5.0)
 
-st.sidebar.subheader("4. 🎯 DMI 多空指標條件")
+st.sidebar.subheader("2. 🎯 DMI 多空指標條件")
 enable_dmi_pdi_day = st.sidebar.checkbox("DMI +DI(日) >= 門檻", value=False)
 dmi_pdi_min_day = st.sidebar.number_input("+DI(日) 最低門檻", value=37.0, step=1.0)
 
@@ -663,20 +652,20 @@ enable_dmi_week_bull = st.sidebar.checkbox("+DI(週) > -DI(週)", value=False)
 enable_dmi_week_adx = st.sidebar.checkbox("ADX(週) > -DI(週)", value=False)
 enable_week_ma5_ma20 = st.sidebar.checkbox("週均線 5MA > 20MA", value=False)
 
-st.sidebar.subheader("5. K棒型態與均線選股")
+st.sidebar.subheader("3. K棒型態與均線選股")
 enable_three_bar_breakout = st.sidebar.checkbox("🔥 三盤突破", value=False)
 enable_three_bar_breakdown = st.sidebar.checkbox("❄️ 三盤跌破", value=False)
 enable_ma_trend = st.sidebar.checkbox("均線多頭 (MA8 > MA21 > MA55)", value=False)
 enable_vma_trend = st.sidebar.checkbox("成交量均線 (VMA5 > VMA13 > VMA34)", value=False)
 
-st.sidebar.subheader("6. 價量突破與創高")
+st.sidebar.subheader("4. 價量突破與創高")
 enable_vol_breakout = st.sidebar.checkbox("成交量 > 5日均量 N 倍", value=False)
 vol_mult = st.sidebar.slider("成交量放大倍數", 1.2, 5.0, 1.5, 0.1)
 
 enable_high_custom = st.sidebar.checkbox("自訂收盤價創 N 日新高", value=False)
 high_period = st.sidebar.slider("自訂創高天數 (N)", 5, 120, 20, 5)
 
-st.sidebar.subheader("7. 門檻過濾")
+st.sidebar.subheader("5. 門檻過濾")
 min_price = st.sidebar.number_input("最低股價 (台幣NTD / 美元USD)", value=10.0, step=1.0)
 min_volume = st.sidebar.number_input("最低成交量 (張/股)", value=500 if "台股" in market_choice else 500000, step=100)
 
@@ -688,7 +677,7 @@ st.subheader("📋 股票篩選結果清單")
 
 quick_filter = st.radio(
     "策略快篩頁籤：",
-    ["全部標的", "🎓 朱家泓大師選股", "🎓 點靈大師選股", "🚀 基本面飆股", "🎯 DMI強勢波段", "🔥 三盤突破", "❄️ 三盤跌破", "⚡ 價量齊揚", "🚀 均線多頭+爆量", "🏆 創20日新高", "🌟 突破60日新高"],
+    ["全部標的", "🚀 基本面飆股", "🎯 DMI強勢波段", "🔥 三盤突破", "❄️ 三盤跌破", "⚡ 價量齊揚", "🚀 均線多頭+爆量", "🏆 創20日新高", "🌟 突破60日新高"],
     horizontal=True
 )
 
@@ -703,7 +692,7 @@ with col_ind:
 
 
 # ------------------------------------------
-# Section 3: 執行篩選邏輯 (整合朱家泓大師選股條件)
+# Section 3: 執行篩選邏輯
 # ------------------------------------------
 target_tickers = [item["code"] for item in current_db]
 raw_stock_data = get_stock_data_source(target_tickers, data_source=data_source, interval=interval_code, period=period_code)
@@ -773,28 +762,6 @@ for item in current_db:
         
     tags = []
     
-    # 朱家泓大師選股條件檢查 (均線多頭發散 + 量價發散)
-    is_zhujiahong_pass = True
-    if zhujiahong_ma_check and not (curr['MA8'] > curr['MA21'] > curr['MA55']):
-        is_zhujiahong_pass = False
-    if zhujiahong_vol_check and not (volume > curr['VMA5']):
-        is_zhujiahong_pass = False
-
-    pass_master_zhujiahong = True
-    if enable_master_zhujiahong:
-        if is_zhujiahong_pass:
-            tags.append("🎓朱家泓選股")
-        else:
-            pass_master_zhujiahong = False
-
-    # 點靈大師選股條件檢查
-    pass_master_dianling = True
-    if enable_master_dianling:
-        if close > min_master_price and vol_display >= min_master_vol and market_cap >= min_master_cap:
-            tags.append("🎓點靈選股")
-        else:
-            pass_master_dianling = False
-
     # 基本面條件檢查
     pass_fund_rev = True
     if enable_rev_grow:
@@ -927,11 +894,7 @@ for item in current_db:
 
     # 快捷頁籤判定
     pass_quick = True
-    if quick_filter == "🎓 朱家泓大師選股":
-        pass_quick = is_zhujiahong_pass
-    elif quick_filter == "🎓 點靈大師選股":
-        pass_quick = (close > 100.0 and vol_display >= 1000 and market_cap >= 20.0)
-    elif quick_filter == "🚀 基本面飆股":
+    if quick_filter == "🚀 基本面飆股":
         pass_quick = is_super_stock
     elif quick_filter == "🎯 DMI強勢波段":
         pass_quick = (curr['Plus_DI'] >= 30 and is_dmi_wk_bull and is_dmi_wk_adx and is_wk_ma_aligned)
@@ -952,7 +915,7 @@ for item in current_db:
         else:
             pass_quick = False
 
-    if pass_master_zhujiahong and pass_master_dianling and pass_fund_rev and pass_fund_psr and pass_fund_csr and pass_fund_clg and pass_three_bar and pass_three_breakdown and pass_ma and pass_vma and pass_vol and pass_high_custom and pass_dmi_day and pass_dmi_wk_bull and pass_dmi_wk_adx and pass_wk_ma and pass_quick:
+    if pass_fund_rev and pass_fund_psr and pass_fund_csr and pass_fund_clg and pass_three_bar and pass_three_breakdown and pass_ma and pass_vma and pass_vol and pass_high_custom and pass_dmi_day and pass_dmi_wk_bull and pass_dmi_wk_adx and pass_wk_ma and pass_quick:
         filtered_rows.append({
             "代號": code,
             "股名": name,
