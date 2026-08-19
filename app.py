@@ -72,7 +72,7 @@ US_STOCK_DATABASE = [
 
 
 # ==========================================
-# 3. 雙數據引擎 (含 twstock 優化與防擋處理)
+# 3. 雙數據引擎 (yfinance / twstock)
 # ==========================================
 @st.cache_data(ttl=1800, show_spinner=False)
 def get_stock_data_source(ticker_list, data_source="yfinance", interval="1d", period="2y"):
@@ -89,7 +89,6 @@ def get_stock_data_source(ticker_list, data_source="yfinance", interval="1d", pe
             raw_code = t.split('.')[0]
             try:
                 stock = twstock.Stock(raw_code)
-                # 僅抓取近幾個月，避免發送過多 HTTP 請求被證交所阻擋
                 hist = stock.fetch_from(start_year, start_month)
                 if hist and len(hist) > 15:
                     df = pd.DataFrame({
@@ -113,7 +112,6 @@ def get_stock_data_source(ticker_list, data_source="yfinance", interval="1d", pe
             except Exception:
                 continue
     else:
-        # yfinance 批次平行抓取
         try:
             data = yf.download(
                 tickers=ticker_list,
@@ -194,18 +192,20 @@ st.divider()
 # ------------------------------------------
 st.sidebar.header("⚙️ 篩選條件設定")
 
+# 1. 市場與資料源選擇
 market_choice = st.sidebar.radio("選擇市場", ["台股 (TW)", "美股 (US)"], index=0)
 
 if "台股" in market_choice:
     data_source = st.sidebar.radio("📡 資料來源 (Data Source)", ["yfinance", "twstock"], index=0)
     if data_source == "twstock":
-        st.sidebar.caption("⚠️ twstock 連線台灣證交所，若因證交所限流阻擋請切換回 yfinance。")
+        st.sidebar.caption("⚠️ twstock 連線台灣證交所，若因證交所限流請切回 yfinance。")
 else:
     data_source = "yfinance"
     st.sidebar.info("美股預設由 yfinance 取得報價")
 
 current_db = STOCK_DATABASE if "台股" in market_choice else US_STOCK_DATABASE
 
+# 2. 分析週期
 timeframe_map = {
     "日K線 (Daily)": ("1d", "1y"),
     "週K線 (Weekly)": ("1wk", "2y"),
@@ -215,21 +215,20 @@ timeframe_map = {
 selected_timeframe = st.sidebar.selectbox("⏱️ 分析週期", list(timeframe_map.keys()), index=0)
 interval_code, period_code = timeframe_map[selected_timeframe]
 
-st.sidebar.subheader("1. 均線排列與突破條件")
+st.sidebar.subheader("1. 均線排列條件")
 enable_ma_trend = st.sidebar.checkbox("均線多頭 (Close > MA8 > MA21 > MA55)", value=False)
-enable_break_ma20 = st.sidebar.checkbox("🚀 當期突破 20 均線 (月線突破)", value=False)
-enable_break_ma60 = st.sidebar.checkbox("🌟 當期突破 60 均線 (季線突破)", value=False)
 enable_vma_trend = st.sidebar.checkbox("成交量均線 VMA5 > VMA13 > VMA34", value=False)
 
-st.sidebar.subheader("2. 帶量突破與創高")
+st.sidebar.subheader("2. 價量突破與創高")
 enable_vol_breakout = st.sidebar.checkbox("成交量 > 5日均量 N 倍", value=False)
 vol_mult = st.sidebar.slider("成交量放大倍數", 1.2, 5.0, 1.5, 0.1)
 
-enable_high_breakout = st.sidebar.checkbox("收盤價創 N 期新高", value=False)
-high_period = st.sidebar.slider("創高天數", 5, 120, 20, 5)
+enable_high_60 = st.sidebar.checkbox("🌟 股價突破 60 日新高", value=True)
+enable_high_custom = st.sidebar.checkbox("自訂收盤價創 N 日新高", value=False)
+high_period = st.sidebar.slider("自訂創高天數 (N)", 5, 120, 20, 5)
 
 st.sidebar.subheader("3. 門檻過濾")
-min_price = st.sidebar.number_input("最低股價 (元/美元)", value=10.0, step=1.0)
+min_price = st.sidebar.number_input("最低股價 (台幣NTD / 美元USD)", value=10.0, step=1.0)
 min_volume = st.sidebar.number_input("最低成交量 (張/股)", value=500 if "台股" in market_choice else 500000, step=100)
 
 
@@ -240,7 +239,7 @@ st.subheader("📋 股票篩選結果清單")
 
 quick_filter = st.radio(
     "策略快篩頁籤：",
-    ["全部標的", "⚡ 突破20/60MA", "🔥 價量齊揚", "🚀 均線多頭+爆量", "🏆 創20日新高"],
+    ["全部標的", "🌟 突破60日新高", "🔥 價量齊揚", "🚀 均線多頭+爆量", "🏆 創20日新高"],
     horizontal=True
 )
 
@@ -260,7 +259,6 @@ with col_ind:
 target_tickers = [item["code"] for item in current_db]
 raw_stock_data = get_stock_data_source(target_tickers, data_source=data_source, interval=interval_code, period=period_code)
 
-# 若 twstock 完全被證交所擋住，給予明顯提示
 if data_source == "twstock" and len(raw_stock_data) == 0:
     st.error("🚨 台灣證交所伺服器暫時阻擋了雲端連線請求，請將左側【資料來源】切換為 **`yfinance`** 即可即時取得報價！")
 
@@ -322,24 +320,8 @@ for item in current_db:
             pass_ma = False
         else:
             tags.append("均線多頭")
-
-    # 條件 1-2: 突破 20 MA
-    pass_break_ma20 = True
-    if enable_break_ma20:
-        if (close > curr['MA20'] and prev_close <= prev['MA20']):
-            tags.append("突破20MA")
-        else:
-            pass_break_ma20 = False
-
-    # 條件 1-3: 突破 60 MA
-    pass_break_ma60 = True
-    if enable_break_ma60:
-        if (close > curr['MA60'] and prev_close <= prev['MA60']):
-            tags.append("突破60MA")
-        else:
-            pass_break_ma60 = False
             
-    # 條件 1-4: 量均線多頭
+    # 條件 1-2: 量均線多頭
     pass_vma = True
     if enable_vma_trend:
         if (curr['VMA5'] > curr['VMA13'] > curr['VMA34']):
@@ -355,24 +337,37 @@ for item in current_db:
         else:
             pass_vol = False
             
-    # 條件 2-2: 創 N 期新高
-    pass_high = True
-    if enable_high_breakout:
+    # 條件 2-2: 突破 60 日新高
+    pass_high_60 = True
+    if enable_high_60:
+        if len(df) > 60:
+            high_60 = df['Close'].iloc[-61:-1].max()
+            if close >= high_60:
+                tags.append("突破60日高")
+            else:
+                pass_high_60 = False
+        else:
+            pass_high_60 = False
+
+    # 條件 2-3: 自訂創 N 日新高
+    pass_high_custom = True
+    if enable_high_custom:
         if len(df) > high_period:
             n_high = df['Close'].iloc[-(high_period+1):-1].max()
             if close >= n_high:
-                tags.append(f"創{high_period}期高")
+                tags.append(f"創{high_period}日高")
             else:
-                pass_high = False
+                pass_high_custom = False
         else:
-            pass_high = False
+            pass_high_custom = False
 
     # 快捷頁籤判定
     pass_quick = True
-    if quick_filter == "⚡ 突破20/60MA":
-        cond_20 = (close > curr['MA20'] and prev_close <= prev['MA20'])
-        cond_60 = (close > curr['MA60'] and prev_close <= prev['MA60'])
-        pass_quick = (cond_20 or cond_60)
+    if quick_filter == "🌟 突破60日新高":
+        if len(df) > 60:
+            pass_quick = (close >= df['Close'].iloc[-61:-1].max())
+        else:
+            pass_quick = False
     elif quick_filter == "🔥 價量齊揚":
         pass_quick = (pct_change > 1.5 and volume > prev['VMA5'])
     elif quick_filter == "🚀 均線多頭+爆量":
@@ -382,7 +377,7 @@ for item in current_db:
             pass_quick = (close >= df['Close'].iloc[-21:-1].max())
 
     # 綜合滿足判定
-    if pass_ma and pass_break_ma20 and pass_break_ma60 and pass_vma and pass_vol and pass_high and pass_quick:
+    if pass_ma and pass_vma and pass_vol and pass_high_60 and pass_high_custom and pass_quick:
         filtered_rows.append({
             "代號": code,
             "股名": name,
@@ -449,7 +444,7 @@ elif not df_result.empty:
             shared_xaxes=True,
             vertical_spacing=0.03,
             row_heights=[0.7, 0.3],
-            subplot_titles=(f"{selected_code} ({selected_timeframe}) K線與 20MA / 60MA", "成交量與 5 均量")
+            subplot_titles=(f"{selected_code} ({selected_timeframe}) K線與均線走勢", "成交量與 5 均量")
         )
         
         # K線
@@ -467,10 +462,10 @@ elif not df_result.empty:
             row=1, col=1
         )
         
-        # 均線 (重點繪製 20MA 月線 與 60MA 季線)
+        # 均線
         fig_k.add_trace(go.Scatter(x=df_k.index, y=df_k['MA8'], mode='lines', name='MA8', line=dict(color='#3b82f6', width=1.2)), row=1, col=1)
-        fig_k.add_trace(go.Scatter(x=df_k.index, y=df_k['MA20'], mode='lines', name='20MA (月線)', line=dict(color='#f59e0b', width=2.0)), row=1, col=1)
-        fig_k.add_trace(go.Scatter(x=df_k.index, y=df_k['MA60'], mode='lines', name='60MA (季線)', line=dict(color='#8b5cf6', width=2.2)), row=1, col=1)
+        fig_k.add_trace(go.Scatter(x=df_k.index, y=df_k['MA20'], mode='lines', name='20MA (月線)', line=dict(color='#f59e0b', width=1.8)), row=1, col=1)
+        fig_k.add_trace(go.Scatter(x=df_k.index, y=df_k['MA60'], mode='lines', name='60MA (季線)', line=dict(color='#8b5cf6', width=2.0)), row=1, col=1)
         
         # 成交量
         v_colors = ['#ef4444' if c >= o else '#22c55e' for c, o in zip(df_k['Close'], df_k['Open'])]
