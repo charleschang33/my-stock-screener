@@ -36,6 +36,10 @@ st.markdown("""
         box-shadow: 0 2px 4px rgba(0,0,0,0.03);
         padding: 5px;
     }
+    /* 表格容器支援左右水平滑動 */
+    div[data-testid="stDataFrame"] {
+        overflow-x: auto;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -140,7 +144,7 @@ def get_stock_data_source(ticker_list, data_source="yfinance", interval="1d", pe
 
 
 # ==========================================
-# 4. 繪製半圓形彩色儀表盤 (已加大頂部間距防止文字被裁切)
+# 4. 繪製半圓形彩色儀表盤
 # ==========================================
 def create_visual_gauge(title, val, min_val, max_val, prefix="", suffix="", status_label="", sub_text="", steps_config=None):
     fig = go.Figure(go.Indicator(
@@ -157,7 +161,6 @@ def create_visual_gauge(title, val, min_val, max_val, prefix="", suffix="", stat
             'steps': steps_config
         }
     ))
-    # 將 height 調整為 240，margin.t 調整為 65，確保頂部三行文字完全展示
     fig.update_layout(
         height=240,
         margin=dict(l=25, r=25, t=65, b=10),
@@ -250,7 +253,7 @@ def show_fear_greed_detail():
 st.markdown("<div class='main-header'>🧠 AI 投資資訊站 | 專屬量化選股儀表板</div>", unsafe_allow_html=True)
 
 # ------------------------------------------
-# Section 1: 頂部三大儀表圖 (附點擊查看按鈕)
+# Section 1: 頂部三大儀表圖
 # ------------------------------------------
 col1, col2, col3 = st.columns(3)
 
@@ -427,7 +430,7 @@ for item in current_db:
     if is_three_bar_breakdown:
         tags.append("三盤跌破")
 
-    # 條件 2: 均線多頭排列 (MA8 > MA21 > MA55)
+    # 條件 2: 均線多頭排列
     is_ma_aligned = (curr['MA8'] > curr['MA21'] > curr['MA55'])
     pass_ma = True
     if enable_ma_trend:
@@ -436,7 +439,7 @@ for item in current_db:
     if is_ma_aligned:
         tags.append("均線多頭")
             
-    # 條件 2-2: 量均線多頭 (VMA5 > VMA13 > VMA34)
+    # 條件 2-2: 量均線多頭
     is_vma_aligned = (curr['VMA5'] > curr['VMA13'] > curr['VMA34'])
     pass_vma = True
     if enable_vma_trend:
@@ -498,7 +501,7 @@ for item in current_db:
         })
 
 # ------------------------------------------
-# Section 4: 表格與下載
+# Section 4: 表格與下載 (已優化左右水平滑動與欄位寬度)
 # ------------------------------------------
 df_result = pd.DataFrame(filtered_rows)
 
@@ -519,14 +522,28 @@ if df_result.empty and len(raw_stock_data) > 0:
     st.info(f"💡 在【{selected_timeframe}】與當前設定下未找到符合個股，可勾選放寬部分條件或切換頁籤。")
 elif not df_result.empty:
     st.write(f"📊 **找到 {len(df_result)} 檔符合標的（資料來源：{data_source} ｜ 週期：{selected_timeframe}）：**")
+    
+    vol_col_name = "成交量 (張)" if "台股" in market_choice else "成交量 (股)"
+    
+    # 使用 column_config 鎖定寬度，觸發完整的左右橫向捲軸
     st.dataframe(
         df_result.style.format({
             "最新股價": "{:.2f}",
             "漲跌幅 (%)": "{:+.2f}%",
-            "成交量 (張)" if "台股" in market_choice else "成交量 (股)": "{:,}"
+            vol_col_name: "{:,}"
         }),
         use_container_width=True,
-        hide_index=True
+        hide_index=True,
+        column_config={
+            "代號": st.column_config.TextColumn("代號", width="small"),
+            "股名": st.column_config.TextColumn("股名", width="small"),
+            "最新股價": st.column_config.NumberColumn("最新股價", width="small"),
+            "漲跌幅 (%)": st.column_config.NumberColumn("漲跌幅 (%)", width="small"),
+            vol_col_name: st.column_config.NumberColumn(vol_col_name, width="medium"),
+            "產業標籤": st.column_config.TextColumn("產業標籤", width="medium"),
+            "題材/特徵": st.column_config.TextColumn("題材/特徵", width="large"),
+            "觸發特徵": st.column_config.TextColumn("觸發特徵", width="large")
+        }
     )
     
     st.divider()
