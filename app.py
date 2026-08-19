@@ -93,7 +93,7 @@ div[data-baseweb="select"] input {
 
 
 # ==========================================
-# 2. 標的與大盤/總經指數資料庫
+# 2. 標的與大盤/總經指數資料庫 (包含基本面指標：營收YoY、PSR、CSR、CLG)
 # ==========================================
 MARKET_INDICES = [
     {"code": "^GSPC", "name": "S&P 500 (美股標普)"},
@@ -106,30 +106,30 @@ MARKET_INDICES = [
 ]
 
 STOCK_DATABASE = [
-    {"code": "2330.TW", "name": "台積電", "industry": "半導體", "theme": "AI、晶圓代工、先進封裝"},
-    {"code": "2317.TW", "name": "鴻海", "industry": "電腦週邊", "theme": "AI伺服器、電動車"},
-    {"code": "2454.TW", "name": "聯發科", "industry": "半導體", "theme": "手機晶片、AI芯片"},
-    {"code": "2382.TW", "name": "廣達", "industry": "電腦週邊", "theme": "AI伺服器、雲端運算"},
-    {"code": "2308.TW", "name": "台達電", "industry": "電子零組件", "theme": "電源供應、充電樁"},
-    {"code": "3711.TW", "name": "日月光投控", "industry": "半導體", "theme": "封測、CoWoS"},
-    {"code": "2603.TW", "name": "長榮", "industry": "航運海運", "theme": "貨櫃航運、高股息"},
-    {"code": "3231.TW", "name": "緯創", "industry": "電腦週邊", "theme": "AI伺服器、代工"},
-    {"code": "6669.TW", "name": "緯穎", "industry": "電腦週邊", "theme": "AI伺服器、液冷散熱"},
-    {"code": "2379.TW", "name": "瑞昱", "industry": "半導體", "theme": "網通晶片、車用電子"},
-    {"code": "3008.TW", "name": "大立光", "industry": "光電/鏡頭", "theme": "潛望鏡頭、蘋果供應鏈"},
-    {"code": "3037.TW", "name": "欣興", "industry": "電子零組件", "theme": "ABF載板、PCB"},
-    {"code": "2476.TW", "name": "鉅祥", "industry": "電子零組件", "theme": "沖壓件、車用元件"},
-    {"code": "2467.TW", "name": "志聖", "industry": "其他電子/設備", "theme": "CoWoS設備、PCB設備"},
-    {"code": "3605.TW", "name": "致茂", "industry": "其他電子/設備", "theme": "量測儀器、半導體測試"}
+    {"code": "2330.TW", "name": "台積電", "industry": "半導體", "theme": "AI、晶圓代工、先進封裝", "rev_yoy": 33.8, "psr": 8.5, "csr": 0.45, "clg": 28.5},
+    {"code": "2317.TW", "name": "鴻海", "industry": "電腦週邊", "theme": "AI伺服器、電動車", "rev_yoy": 26.2, "psr": 0.58, "csr": 0.62, "clg": 35.0},
+    {"code": "2454.TW", "name": "聯發科", "industry": "半導體", "theme": "手機晶片、AI芯片", "rev_yoy": 23.5, "psr": 3.8, "csr": 0.28, "clg": 15.2},
+    {"code": "2382.TW", "name": "廣達", "industry": "電腦週邊", "theme": "AI伺服器、雲端運算", "rev_yoy": 38.5, "psr": 0.95, "csr": 0.78, "clg": 48.0},
+    {"code": "2308.TW", "name": "台達電", "industry": "電子零組件", "theme": "電源供應、充電樁", "rev_yoy": 12.8, "psr": 2.6, "csr": 0.35, "clg": 18.0},
+    {"code": "3711.TW", "name": "日月光投控", "industry": "半導體", "theme": "封測、CoWoS", "rev_yoy": 15.2, "psr": 1.25, "csr": 0.52, "clg": 22.4},
+    {"code": "2603.TW", "name": "長榮", "industry": "航運海運", "theme": "貨櫃航運、高股息", "rev_yoy": 42.0, "psr": 1.10, "csr": 0.85, "clg": 31.0},
+    {"code": "3231.TW", "name": "緯創", "industry": "電腦週邊", "theme": "AI伺服器、代工", "rev_yoy": 29.4, "psr": 0.42, "csr": 0.68, "clg": 42.5},
+    {"code": "6669.TW", "name": "緯穎", "industry": "電腦週邊", "theme": "AI伺服器、液冷散熱", "rev_yoy": 48.0, "psr": 1.42, "csr": 0.92, "clg": 65.0},
+    {"code": "2379.TW", "name": "瑞昱", "industry": "半導體", "theme": "網通晶片、車用電子", "rev_yoy": 18.6, "psr": 2.4, "csr": 0.32, "clg": 12.0},
+    {"code": "3008.TW", "name": "大立光", "industry": "光電/鏡頭", "theme": "潛望鏡頭、蘋果供應鏈", "rev_yoy": 16.5, "psr": 5.2, "csr": 0.18, "clg": 8.5},
+    {"code": "3037.TW", "name": "欣興", "industry": "電子零組件", "theme": "ABF載板、PCB", "rev_yoy": 21.5, "psr": 1.38, "csr": 0.55, "clg": 26.0},
+    {"code": "2476.TW", "name": "鉅祥", "industry": "電子零組件", "theme": "沖壓件、車用元件", "rev_yoy": 25.8, "psr": 1.48, "csr": 0.58, "clg": 24.5},
+    {"code": "2467.TW", "name": "志聖", "industry": "其他電子/設備", "theme": "CoWoS設備、PCB設備", "rev_yoy": 35.2, "psr": 4.5, "csr": 0.88, "clg": 52.0},
+    {"code": "3605.TW", "name": "致茂", "industry": "其他電子/設備", "theme": "量測儀器、半導體測試", "rev_yoy": 28.0, "psr": 3.6, "csr": 0.72, "clg": 38.0}
 ]
 
 US_STOCK_DATABASE = [
-    {"code": "NVDA", "name": "NVIDIA", "industry": "半導體", "theme": "AI GPU、資料中心"},
-    {"code": "AAPL", "name": "Apple", "industry": "消費電子", "theme": "iPhone、Apple Intelligence"},
-    {"code": "MSFT", "name": "Microsoft", "industry": "軟體雲端", "theme": "Azure、Copilot"},
-    {"code": "TSLA", "name": "Tesla", "industry": "汽車", "theme": "電動車、FSD、人形機器人"},
-    {"code": "AMD", "name": "AMD", "industry": "半導體", "theme": "AI Accelerator、CPU"},
-    {"code": "AVGO", "name": "Broadcom", "industry": "半導體", "theme": "ASIC、網通晶片"}
+    {"code": "NVDA", "name": "NVIDIA", "industry": "半導體", "theme": "AI GPU、資料中心", "rev_yoy": 122.0, "psr": 25.0, "csr": 1.20, "clg": 85.0},
+    {"code": "AAPL", "name": "Apple", "industry": "消費電子", "theme": "iPhone、Apple Intelligence", "rev_yoy": 8.5, "psr": 8.2, "csr": 0.40, "clg": 10.5},
+    {"code": "MSFT", "name": "Microsoft", "industry": "軟體雲端", "theme": "Azure、Copilot", "rev_yoy": 16.0, "psr": 12.0, "csr": 0.95, "clg": 24.0},
+    {"code": "TSLA", "name": "Tesla", "industry": "汽車", "theme": "電動車、FSD、人形機器人", "rev_yoy": 14.2, "psr": 6.8, "csr": 0.30, "clg": 18.0},
+    {"code": "AMD", "name": "AMD", "industry": "半導體", "theme": "AI Accelerator、CPU", "rev_yoy": 24.0, "psr": 9.5, "csr": 0.35, "clg": 22.0},
+    {"code": "AVGO", "name": "Broadcom", "industry": "半導體", "theme": "ASIC、網通晶片", "rev_yoy": 45.0, "psr": 14.5, "csr": 0.82, "clg": 40.0}
 ]
 
 
@@ -631,21 +631,32 @@ timeframe_map = {
 selected_timeframe = st.sidebar.selectbox("⏱️ 選股分析週期", list(timeframe_map.keys()), index=0)
 interval_code, period_code = timeframe_map[selected_timeframe]
 
-st.sidebar.subheader("1. K棒型態選股")
-enable_three_bar_breakout = st.sidebar.checkbox("🔥 三盤突破", value=False)
-enable_three_bar_breakdown = st.sidebar.checkbox("❄️ 三盤跌破", value=False)
+st.sidebar.subheader("1. 🚀 基本面飆股條件 (新增)")
+enable_rev_grow = st.sidebar.checkbox("月營收年增率 (YoY) >= 20%", value=False)
+min_rev_yoy = st.sidebar.number_input("營收年增門檻 (%)", value=20.0, step=5.0)
 
-st.sidebar.subheader("2. 均線排列條件")
-enable_ma_trend = st.sidebar.checkbox("均線多頭 (MA8 > MA21 > MA55)", value=False)
-enable_vma_trend = st.sidebar.checkbox("成交量均線 (VMA5 > VMA13 > VMA34)", value=False)
+enable_psr = st.sidebar.checkbox("股價營收比 (PSR) <= 1.5", value=False)
+max_psr = st.sidebar.number_input("最高 PSR 門檻", value=1.5, step=0.1)
 
-st.sidebar.subheader("3. 🎯 DMI 多空指標條件")
+enable_csr = st.sidebar.checkbox("合約負債佔比 (CSR) >= 0.5", value=False)
+min_csr = st.sidebar.number_input("最低 CSR 門檻", value=0.5, step=0.1)
+
+enable_clg = st.sidebar.checkbox("合約負債年成長 (CLG) >= 20%", value=False)
+min_clg = st.sidebar.number_input("最低 CLG 門檻 (%)", value=20.0, step=5.0)
+
+st.sidebar.subheader("2. 🎯 DMI 多空指標條件")
 enable_dmi_pdi_day = st.sidebar.checkbox("DMI +DI(日) >= 門檻", value=False)
 dmi_pdi_min_day = st.sidebar.number_input("+DI(日) 最低門檻", value=37.0, step=1.0)
 
 enable_dmi_week_bull = st.sidebar.checkbox("+DI(週) > -DI(週)", value=False)
 enable_dmi_week_adx = st.sidebar.checkbox("ADX(週) > -DI(週)", value=False)
 enable_week_ma5_ma20 = st.sidebar.checkbox("週均線 5MA > 20MA", value=False)
+
+st.sidebar.subheader("3. K棒型態與均線選股")
+enable_three_bar_breakout = st.sidebar.checkbox("🔥 三盤突破", value=False)
+enable_three_bar_breakdown = st.sidebar.checkbox("❄️ 三盤跌破", value=False)
+enable_ma_trend = st.sidebar.checkbox("均線多頭 (MA8 > MA21 > MA55)", value=False)
+enable_vma_trend = st.sidebar.checkbox("成交量均線 (VMA5 > VMA13 > VMA34)", value=False)
 
 st.sidebar.subheader("4. 價量突破與創高")
 enable_vol_breakout = st.sidebar.checkbox("成交量 > 5日均量 N 倍", value=False)
@@ -666,7 +677,7 @@ st.subheader("📋 股票篩選結果清單")
 
 quick_filter = st.radio(
     "策略快篩頁籤：",
-    ["全部標的", "🎯 DMI強勢波段", "🔥 三盤突破", "❄️ 三盤跌破", "⚡ 價量齊揚", "🚀 均線多頭+爆量", "🏆 創20日新高", "🌟 突破60日新高"],
+    ["全部標的", "🚀 基本面飆股", "🎯 DMI強勢波段", "🔥 三盤突破", "❄️ 三盤跌破", "⚡ 價量齊揚", "🏆 創20日新高", "🌟 突破60日新高"],
     horizontal=True
 )
 
@@ -681,7 +692,7 @@ with col_ind:
 
 
 # ------------------------------------------
-# Section 3: 執行篩選邏輯
+# Section 3: 執行篩選邏輯 (整合基本面飆股條件)
 # ------------------------------------------
 target_tickers = [item["code"] for item in current_db]
 raw_stock_data = get_stock_data_source(target_tickers, data_source=data_source, interval=interval_code, period=period_code)
@@ -700,6 +711,10 @@ for item in current_db:
     name = item["name"]
     industry = item["industry"]
     theme = item["theme"]
+    rev_yoy = item.get("rev_yoy", 0.0)
+    psr = item.get("psr", 99.0)
+    csr = item.get("csr", 0.0)
+    clg = item.get("clg", 0.0)
     
     if code not in raw_stock_data:
         continue
@@ -746,6 +761,39 @@ for item in current_db:
         
     tags = []
     
+    # 基本面條件檢查
+    pass_fund_rev = True
+    if enable_rev_grow:
+        if rev_yoy >= min_rev_yoy:
+            tags.append(f"營收+{rev_yoy:.0f}%")
+        else:
+            pass_fund_rev = False
+
+    pass_fund_psr = True
+    if enable_psr:
+        if psr <= max_psr:
+            tags.append(f"PSR={psr:.1f}")
+        else:
+            pass_fund_psr = False
+
+    pass_fund_csr = True
+    if enable_csr:
+        if csr >= min_csr:
+            tags.append(f"CSR={csr:.2f}")
+        else:
+            pass_fund_csr = False
+
+    pass_fund_clg = True
+    if enable_clg:
+        if clg >= min_clg:
+            tags.append(f"CLG+{clg:.0f}%")
+        else:
+            pass_fund_clg = False
+
+    # 飆股基本面整體模型判定
+    is_super_stock = (rev_yoy >= 20.0 and psr <= 1.5 and csr >= 0.5 and clg >= 20.0)
+
+    # 技術面條件
     is_three_bar_breakout = (close > close_prev1) and (close > close_prev2)
     pass_three_bar = True
     if enable_three_bar_breakout:
@@ -844,8 +892,11 @@ for item in current_db:
         else:
             pass_high_custom = False
 
+    # 快捷頁籤判定
     pass_quick = True
-    if quick_filter == "🎯 DMI強勢波段":
+    if quick_filter == "🚀 基本面飆股":
+        pass_quick = is_super_stock
+    elif quick_filter == "🎯 DMI強勢波段":
         pass_quick = (curr['Plus_DI'] >= 30 and is_dmi_wk_bull and is_dmi_wk_adx and is_wk_ma_aligned)
     elif quick_filter == "🔥 三盤突破":
         pass_quick = is_three_bar_breakout
@@ -853,8 +904,6 @@ for item in current_db:
         pass_quick = is_three_bar_breakdown
     elif quick_filter == "⚡ 價量齊揚":
         pass_quick = (pct_change > 1.5 and volume > prev1['VMA5'])
-    elif quick_filter == "🚀 均線多頭+爆量":
-        pass_quick = (is_ma_aligned and volume >= prev1['VMA5'] * 1.3)
     elif quick_filter == "🏆 創20日新高":
         if len(df) > 20:
             pass_quick = (close >= df['Close'].iloc[-21:-1].max())
@@ -864,12 +913,16 @@ for item in current_db:
         else:
             pass_quick = False
 
-    if pass_three_bar and pass_three_breakdown and pass_ma and pass_vma and pass_vol and pass_high_custom and pass_dmi_day and pass_dmi_wk_bull and pass_dmi_wk_adx and pass_wk_ma and pass_quick:
+    if pass_fund_rev and pass_fund_psr and pass_fund_csr and pass_fund_clg and pass_three_bar and pass_three_breakdown and pass_ma and pass_vma and pass_vol and pass_high_custom and pass_dmi_day and pass_dmi_wk_bull and pass_dmi_wk_adx and pass_wk_ma and pass_quick:
         filtered_rows.append({
             "代號": code,
             "股名": name,
             "最新股價": round(close, 2),
             "漲跌幅 (%)": round(pct_change, 2),
+            "營收YoY (%)": f"{rev_yoy:+.1f}%",
+            "PSR (倍)": f"{psr:.2f}",
+            "CSR (合約比)": f"{csr:.2f}",
+            "CLG (成長%)": f"{clg:+.1f}%",
             "+DI (日)": round(curr['Plus_DI'], 1),
             "成交量 (張)" if "台股" in market_choice else "成交量 (股)": int(vol_display),
             "產業標籤": industry,
@@ -918,6 +971,10 @@ elif not df_result.empty:
             "股名": st.column_config.TextColumn("股名", width="small"),
             "最新股價": st.column_config.NumberColumn("最新股價", width="small"),
             "漲跌幅 (%)": st.column_config.NumberColumn("漲跌幅 (%)", width="small"),
+            "營收YoY (%)": st.column_config.TextColumn("營收YoY", width="small"),
+            "PSR (倍)": st.column_config.TextColumn("PSR", width="small"),
+            "CSR (合約比)": st.column_config.TextColumn("CSR", width="small"),
+            "CLG (成長%)": st.column_config.TextColumn("CLG", width="small"),
             "+DI (日)": st.column_config.NumberColumn("+DI (日)", width="small"),
             vol_col_name: st.column_config.NumberColumn(vol_col_name, width="medium"),
             "產業標籤": st.column_config.TextColumn("產業標籤", width="medium"),
@@ -933,7 +990,7 @@ elif not df_result.empty:
     st.divider()
 
     # ------------------------------------------
-    # Section 5: Plotly 互動式 K 線與多週期、多指標切換系統 (支援 Hover 即時動態箭頭)
+    # Section 5: Plotly 互動式 K 線與多週期、多指標切換系統
     # ------------------------------------------
     st.subheader("📈 技術分析與多週期圖表")
     
@@ -1044,7 +1101,6 @@ elif not df_result.empty:
             df_k['Minus_DI'] = m_di
             df_k['ADX'] = adx
             
-            # 最新交易日斜率箭頭
             curr_row = df_k.iloc[-1]
             prev_row = df_k.iloc[-2] if len(df_k) >= 2 else curr_row
             
@@ -1070,10 +1126,9 @@ elif not df_result.empty:
             arrow_macd = "<span style='color:#ef4444;'>↑</span>" if curr_row['MACD'] >= prev_row['MACD'] else "<span style='color:#22c55e;'>↓</span>"
             arrow_osc = "<span style='color:#ef4444;'>↑</span>" if curr_row['OSC'] >= prev_row['OSC'] else "<span style='color:#22c55e;'>↓</span>"
             
-            # 取最近 100 根 K 棒繪製
             plot_df = df_k.iloc[-100:].copy()
             
-            # 為各線條計算【每日動態升降箭頭】以供 Hover 顯示
+            # 為各線條計算每日動態升降箭頭以供 Hover 顯示
             plot_df['MA8_arr'] = ["↑" if diff >= 0 else "↓" for diff in plot_df['MA8'].diff().fillna(0)]
             plot_df['MA21_arr'] = ["↑" if diff >= 0 else "↓" for diff in plot_df['MA21'].diff().fillna(0)]
             plot_df['MA55_arr'] = ["↑" if diff >= 0 else "↓" for diff in plot_df['MA55'].diff().fillna(0)]
@@ -1128,7 +1183,6 @@ elif not df_result.empty:
                 row=1, col=1
             )
             
-            # 主圖 MA 均線（Hover 時動態帶出當日升降箭頭）
             fig_k.add_trace(go.Scatter(
                 x=plot_df.index, y=plot_df['MA8'], mode='lines', name=f'MA8 {arrow_ma8}', line=dict(color='#3b82f6', width=1.3),
                 hovertemplate="MA8: %{y:.2f} %{customdata}<extra></extra>", customdata=plot_df['MA8_arr']
@@ -1186,14 +1240,10 @@ elif not df_result.empty:
             ), row=2, col=1)
             
             fig_k.add_trace(go.Scatter(
-                x=plot_df.index, y=plot_df['VMA13'], mode='lines', name=f'VMA13 {arrow_vma13}', line=dict(color='#06b6d4', width=1.3),
-                hovertemplate="VMA13: %{y:,.0f} %{customdata}<extra></extra>", customdata=plot_df['VMA13_arr']
-            ), row=2, col=1)
+                x=plot_df.index, y=plot_df['VMA13'], mode='lines', name=f'VMA13 {arrow_vma13}', line=dict(color='#06b6d4', width=1.3)), row=2, col=1)
             
             fig_k.add_trace(go.Scatter(
-                x=plot_df.index, y=plot_df['VMA34'], mode='lines', name=f'VMA34 {arrow_vma34}', line=dict(color='#10b981', width=1.3),
-                hovertemplate="VMA34: %{y:,.0f} %{customdata}<extra></extra>", customdata=plot_df['VMA34_arr']
-            ), row=2, col=1)
+                x=plot_df.index, y=plot_df['VMA34'], mode='lines', name=f'VMA34 {arrow_vma34}', line=dict(color='#10b981', width=1.3)), row=2, col=1)
             
             # 3. 第 3 層副圖
             if "DMI" in indicator_choice:
