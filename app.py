@@ -14,38 +14,7 @@ import io
 st.set_page_config(
     page_title="AI 投資資訊站 - 個人量化篩選系統",
     page_icon="🧠",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
-
-st.markdown("""
-    <style>
-    .stApp {
-        background-color: #f8fafc;
-    }
-    .main-header {
-        font-size: 24px;
-        font-weight: 700;
-        color: #0f172a;
-        margin-bottom: 20px;
-    }
-    div[data-testid="stPlotlyChart"] {
-        background-color: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.03);
-        padding: 5px;
-    }
-    div[data-testid="stDataFrame"] {
-        overflow-x: auto;
-    }
-    div[data-baseweb="select"] span {
-        font-size: 16px !important;
-        font-weight: 600 !important;
-    }
-    div[data-baseweb="select"] input {
-        font-size: 16px !important;
-    }import streamlit as st
+    layout="wide",import streamlit as st
 import yfinance as yf
 import pandas as pd
 import numpy as np
@@ -66,42 +35,34 @@ st.set_page_config(
 )
 
 st.markdown("""
-    <style>
-    .stApp {
-        background-color: #f8fafc;
-    }
-    .main-header {
-        font-size: 24px;
-        font-weight: 700;
-        color: #0f172a;
-        margin-bottom: 12px;
-    }
-    .market-banner {
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        padding: 12px 16px;
-        margin-bottom: 16px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-    }
-    div[data-testid="stPlotlyChart"] {
-        background-color: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.03);
-        padding: 5px;
-    }
-    div[data-testid="stDataFrame"] {
-        overflow-x: auto;
-    }
-    div[data-baseweb="select"] span {
-        font-size: 16px !important;
-        font-weight: 600 !important;
-    }
-    div[data-baseweb="select"] input {
-        font-size: 16px !important;
-    }
-    </style>
+<style>
+.stApp {
+    background-color: #f8fafc;
+}
+.main-header {
+    font-size: 24px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 12px;
+}
+div[data-testid="stPlotlyChart"] {
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+    padding: 5px;
+}
+div[data-testid="stDataFrame"] {
+    overflow-x: auto;
+}
+div[data-baseweb="select"] span {
+    font-size: 16px !important;
+    font-weight: 600 !important;
+}
+div[data-baseweb="select"] input {
+    font-size: 16px !important;
+}
+</style>
 """, unsafe_allow_html=True)
 
 
@@ -137,7 +98,7 @@ US_STOCK_DATABASE = [
 
 
 # ==========================================
-# 3. 數據引擎 (支援年K合成與 MultiIndex 修正)
+# 3. 數據引擎
 # ==========================================
 @st.cache_data(ttl=600, show_spinner=False)
 def get_stock_data_source(ticker_list, data_source="yfinance", interval="1d", period="2y"):
@@ -331,7 +292,7 @@ def show_fear_greed_detail():
 st.markdown("<div class='main-header'>🧠 AI 投資資訊站 | 專屬量化選股儀表板</div>", unsafe_allow_html=True)
 
 # ------------------------------------------
-# Section 0: 大盤、櫃買、期貨多空、選擇權與美股指數看板 (插入於3個半圓上方)
+# Section 0: 大盤、櫃買、期貨多空、選擇權與美股指數看板
 # ------------------------------------------
 m_col1, m_col2, m_col3, m_col4, m_col5, m_col6 = st.columns(6)
 
@@ -353,7 +314,7 @@ with m_col3:
     st.metric(
         label="⚡ 臺指期貨大戶部位",
         value="+9,954 口",
-        delta="多單留倉 4.68萬 / 空單 3.68萬",
+        delta="多單 4.68萬 / 空單 3.68萬",
         delta_color="normal"
     )
 
@@ -426,7 +387,6 @@ else:
 
 current_db = STOCK_DATABASE if "台股" in market_choice else US_STOCK_DATABASE
 
-# 側邊欄選股週期（日、週、月、年）
 timeframe_map = {
     "日K線 (Daily)": ("1d", "1y"),
     "週K線 (Weekly)": ("1wk", "2y"),
