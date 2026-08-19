@@ -11,28 +11,7 @@ import io
 # ==========================================
 # 1. 頁面佈局與 CSS 樣式
 # ==========================================
-st.set_page_config(
-    page_title="AI 投資資訊站 - 個人量化篩選系統",
-    page_icon="🧠",
-    layout="wide",import streamlit as st
-import yfinance as yf
-import pandas as pd
-import numpy as np
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-import twstock
-from datetime import datetime
-import io
-
-# ==========================================
-# 1. 頁面佈局與 CSS 樣式
-# ==========================================
-st.set_page_config(
-    page_title="AI 投資資訊站 - 個人量化篩選系統",
-    page_icon="🧠",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+st.set_page_config(page_title="AI 投資資訊站", page_icon="🧠", layout="wide", initial_sidebar_state="expanded")
 
 st.markdown("""
 <style>
@@ -297,48 +276,22 @@ st.markdown("<div class='main-header'>🧠 AI 投資資訊站 | 專屬量化選�
 m_col1, m_col2, m_col3, m_col4, m_col5, m_col6 = st.columns(6)
 
 with m_col1:
-    st.metric(
-        label="🇹🇼 加權指數 (大盤)",
-        value="23,825.40",
-        delta="+145.20 (+0.61%)"
-    )
+    st.metric(label="🇹🇼 加權指數 (大盤)", value="23,825.40", delta="+145.20 (+0.61%)")
 
 with m_col2:
-    st.metric(
-        label="🏢 櫃買指數 (OTC)",
-        value="268.35",
-        delta="+1.85 (+0.69%)"
-    )
+    st.metric(label="🏢 櫃買指數 (OTC)", value="268.35", delta="+1.85 (+0.69%)")
 
 with m_col3:
-    st.metric(
-        label="⚡ 臺指期貨大戶部位",
-        value="+9,954 口",
-        delta="多單 4.68萬 / 空單 3.68萬",
-        delta_color="normal"
-    )
+    st.metric(label="⚡ 臺指期貨大戶部位", value="+9,954 口", delta="多單 4.68萬 / 空單 3.68萬", delta_color="normal")
 
 with m_col4:
-    st.metric(
-        label="🎯 選擇權 P/C Ratio",
-        value="118.5%",
-        delta="偏多支撐力道強",
-        delta_color="normal"
-    )
+    st.metric(label="🎯 選擇權 P/C Ratio", value="118.5%", delta="偏多支撐力道強", delta_color="normal")
 
 with m_col5:
-    st.metric(
-        label="🇺🇸 S&P 500 (美股標普)",
-        value="5,620.85",
-        delta="+28.40 (+0.51%)"
-    )
+    st.metric(label="🇺🇸 S&P 500 (美股標普)", value="5,620.85", delta="+28.40 (+0.51%)")
 
 with m_col6:
-    st.metric(
-        label="💻 Nasdaq (美股那指)",
-        value="17,850.30",
-        delta="+112.60 (+0.63%)"
-    )
+    st.metric(label="💻 Nasdaq (美股那指)", value="17,850.30", delta="+112.60 (+0.63%)")
 
 st.markdown("<div style='margin-bottom: 8px;'></div>", unsafe_allow_html=True)
 
@@ -461,12 +414,10 @@ for item in current_db:
     if len(df) < 5 or 'Close' not in df.columns:
         continue
         
-    # 計算均線 (MA8, MA21, MA55)
     df['MA8'] = df['Close'].rolling(8, min_periods=1).mean()
     df['MA21'] = df['Close'].rolling(21, min_periods=1).mean()
     df['MA55'] = df['Close'].rolling(55, min_periods=1).mean()
     
-    # 計算量均線 (VMA5, VMA13, VMA34)
     df['VMA5'] = df['Volume'].rolling(5, min_periods=1).mean()
     df['VMA13'] = df['Volume'].rolling(13, min_periods=1).mean()
     df['VMA34'] = df['Volume'].rolling(34, min_periods=1).mean()
@@ -483,11 +434,9 @@ for item in current_db:
     volume = float(curr['Volume'])
     vol_display = volume / 1000 if "台股" in market_choice else volume
     
-    # 基本門檻過濾
     if close < min_price or vol_display < min_volume:
         continue
         
-    # 關鍵字與產業過濾
     if search_keyword:
         kw = search_keyword.lower()
         if not (kw in code.lower() or kw in name.lower() or kw in theme.lower()):
@@ -573,7 +522,6 @@ for item in current_db:
         else:
             pass_quick = False
 
-    # 綜合滿足判定
     if pass_three_bar and pass_three_breakdown and pass_ma and pass_vma and pass_vol and pass_high_custom and pass_quick:
         filtered_rows.append({
             "代號": code,
@@ -685,7 +633,6 @@ elif not df_result.empty:
         )
         
     c_interval, c_period = chart_tf_map[chart_tf]
-    
     chart_stock_dict = get_stock_data_source([selected_code], data_source="yfinance", interval=c_interval, period=c_period)
     
     if selected_code and selected_code in chart_stock_dict:
@@ -717,7 +664,6 @@ elif not df_result.empty:
             df_k['K'] = k_list[1:]
             df_k['D'] = d_list[1:]
             
-            # 判斷最新斜率與紅綠顏色箭頭
             curr_row = df_k.iloc[-1]
             prev_row = df_k.iloc[-2] if len(df_k) >= 2 else curr_row
             
@@ -754,12 +700,10 @@ elif not df_result.empty:
                 row=1, col=1
             )
             
-            # 主圖：MA8, MA21, MA55
             fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['MA8'], mode='lines', name=f'MA8 {arrow_ma8}', line=dict(color='#3b82f6', width=1.3)), row=1, col=1)
             fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['MA21'], mode='lines', name=f'MA21 {arrow_ma21}', line=dict(color='#ec4899', width=1.5)), row=1, col=1)
             fig_k.add_trace(go.Scatter(x=plot_df.index, y=plot_df['MA55'], mode='lines', name=f'MA55 {arrow_ma55}', line=dict(color='#8b5cf6', width=1.8)), row=1, col=1)
             
-            # 扣抵位置計算
             total_len = len(df_k)
             kd_annotations = [
                 {"days": 8, "label": "扣8", "color": "#3b82f6"},
