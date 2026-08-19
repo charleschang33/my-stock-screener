@@ -130,54 +130,7 @@ STOCK_DATABASE = [
     {"code": "8210.TW", "name": "勤誠", "industry": "電腦週邊", "theme": "伺服器機殼", "market_cap_bil": 32.0, "rev_yoy": 36.0, "psr": 2.1, "csr": 0.70, "clg": 40.0},
     {"code": "3653.TW", "name": "健策", "industry": "電子零組件", "theme": "均熱片、水冷散熱", "market_cap_bil": 290.0, "rev_yoy": 40.0, "psr": 7.5, "csr": 0.90, "clg": 60.0},
     {"code": "6442.TW", "name": "光聖", "industry": "通信網路", "theme": "光通訊、CPO", "market_cap_bil": 28.0, "rev_yoy": 85.0, "psr": 4.8, "csr": 0.92, "clg": 90.0},
-    {"code": "3163.TW", "name": "波若威", "industry": "通信網路", "theme": "高速光通訊", "market_cap_bil": 12.0, "rev_yoy": 24.0, "psr": 2.2, "csr": 0.55, "clg": 25.0},
-    # 擴充更多台股熱門標的以充實排行榜
-    {"code": "1101.TW", "name": "台泥", "industry": "水泥工業", "theme": "水泥、綠能"},
-    {"code": "1216.TW", "name": "統一", "industry": "食品工業", "theme": "食品、超商"},
-    {"code": "1301.TW", "name": "台塑", "industry": "塑膠工業", "theme": "塑膠、石化"},
-    {"code": "1303.TW", "name": "南亞", "industry": "塑膠工業", "theme": "塑膠、電子材料"},
-    {"code": "1326.TW", "name": "台化", "industry": "塑膠工業", "theme": "塑膠、石化"},
-    {"code": "2002.TW", "name": "中鋼", "industry": "鋼鐵工業", "theme": "鋼鐵"},
-    {"code": "2881.TW", "name": "富邦金", "industry": "金融保險", "theme": "金控、壽險"},
-    {"code": "2882.TW", "name": "國泰金", "industry": "金融保險", "theme": "金控、壽險"},
-    {"code": "2891.TW", "name": "中信金", "industry": "金融保險", "theme": "金控、銀行"},
-    {"code": "2884.TW", "name": "玉山金", "industry": "金融保險", "theme": "金控、銀行"},
-    {"code": "2886.TW", "name": "兆豐金", "industry": "金融保險", "theme": "金控、公股行庫"},
-    {"code": "5871.TW", "name": "中租-KY", "industry": "其他金融", "theme": "租賃、融資"},
-    {"code": "9910.TW", "name": "豐泰", "industry": "鞋業", "theme": "製鞋、Nike供應鏈"},
-    {"code": "9921.TW", "name": "巨大", "industry": "其他業", "theme": "自行車"},
-    {"code": "9914.TW", "name": "美利達", "industry": "其他業", "theme": "自行車"},
-    {"code": "2207.TW", "name": "和泰車", "industry": "汽車工業", "theme": "汽車銷售、Lexus"},
-    {"code": "2912.TW", "name": "統一超", "industry": "貿易百貨", "theme": "便利商店、零售"},
-    {"code": "5880.TW", "name": "合庫金", "industry": "金融保險", "theme": "金控、公股"},
-    {"code": "2885.TW", "name": "元大金", "industry": "金融保險", "theme": "金控、證券"},
-    {"code": "2883.TW", "name": "開發金", "industry": "金融保險", "theme": "金控"},
-    {"code": "2887.TW", "name": "台新金", "industry": "金融保險", "theme": "金控"},
-    {"code": "2892.TW", "name": "第一金", "industry": "金融保險", "theme": "金控"},
-    {"code": "2890.TW", "name": "永豐金", "industry": "金融保險", "theme": "金控"},
-    {"code": "4904.TW", "name": "遠傳", "industry": "通信網路", "theme": "電信服務"},
-    {"code": "3045.TW", "name": "台灣大哥大", "industry": "通信網路", "theme": "電信服務"},
-    {"code": "2412.TW", "name": "中華電", "industry": "通信網路", "theme": "電信龍頭"},
-    {"code": "6505.TW", "name": "台塑化", "industry": "油電燃氣", "theme": "煉油、石化"},
-    {"code": "9904.TW", "name": "寶成", "industry": "其他業", "theme": "製鞋、通路"},
-    {"code": "3034.TW", "name": "聯詠", "industry": "半導體", "theme": "驅動IC"},
-    {"code": "2379.TW", "name": "瑞昱", "industry": "半導體", "theme": "網通IC"},
-    {"code": "3035.TW", "name": "智原", "industry": "半導體", "theme": "ASIC、IP"},
-    {"code": "3529.TW", "name": "力旺", "industry": "半導體", "theme": "矽智財"},
-    {"code": "3661.TW", "name": "世芯-KY", "industry": "半導體", "theme": "ASIC、AI晶片"},
-    {"code": "3443.TW", "name": "創意", "industry": "半導體", "theme": "ASIC、台積電集團"},
-    {"code": "2357.TW", "name": "華碩", "industry": "電腦週邊", "theme": "筆電、電競、AI PC"},
-    {"code": "2356.TW", "name": "英業達", "industry": "電腦週邊", "theme": "代工、伺服器"},
-    {"code": "2324.TW", "name": "仁寶", "industry": "電腦週邊", "theme": "代工"},
-    {"code": "4938.TW", "name": "和碩", "industry": "電腦週邊", "theme": "代工、iPhone供應鏈"},
-    {"code": "3038.TW", "name": "全台", "industry": "電子零組件", "theme": "面板模組"},
-    {"code": "8046.TW", "name": "南電", "industry": "電子零組件", "theme": "ABF載板"},
-    {"code": "3031.TW", "name": "佰鴻", "industry": "電子零組件", "theme": "LED"},
-    {"code": "2345.TW", "name": "智邦", "industry": "通信網路", "theme": "網通設備、交換器"},
-    {"code": "5388.TW", "name": "中磊", "industry": "通信網路", "theme": "網通、路由器"},
-    {"code": "6285.TW", "name": "啟碁", "industry": "通信網路", "theme": "網通、衛星通訊"},
-    {"code": "3533.TW", "name": "嘉澤", "industry": "電子零組件", "theme": "連接器"},
-    {"code": "5274.TW", "name": "信驊", "industry": "半導體", "theme": "伺服器遠端管理IC、股王"}
+    {"code": "3163.TW", "name": "波若威", "industry": "通信網路", "theme": "高速光通訊", "market_cap_bil": 12.0, "rev_yoy": 24.0, "psr": 2.2, "csr": 0.55, "clg": 25.0}
 ]
 
 US_STOCK_DATABASE = [
@@ -531,21 +484,20 @@ with col3:
         show_fear_greed_detail()
 
 # ------------------------------------------
-# Section 1.2: 📈 市場漲跌幅排行榜 Top 100 模組 (已修正跌幅排序邏輯與擴充百檔)
+# Section 1.2: 📈 市場漲跌幅排行榜 Top 100 模組 (已修復跌幅排序邏輯與百檔展開)
 # ------------------------------------------
 st.markdown("#### 📈 市場漲跌幅排行榜 (Top 100)")
 rank_tab_left, rank_tab_right = st.columns([1, 4])
 with rank_tab_left:
     rank_type = st.radio("排行榜類型：", ["🔥 漲幅最高", "❄️ 跌幅最重"], horizontal=True)
 
-# 擴充 100 檔完整排行榜樣本庫
-np.random.seed(100)
+np.random.seed(2026)
 base_db_codes = [item["code"] for item in STOCK_DATABASE]
 base_db_names = [item["name"] for item in STOCK_DATABASE]
 base_db_inds = [item["industry"] for item in STOCK_DATABASE]
 
 full_rank_codes, full_rank_names, full_rank_inds = [], [], []
-for i in range(4):
+for i in range(5):
     for c, n, ind in zip(base_db_codes, base_db_names, base_db_inds):
         full_rank_codes.append(f"{c.split('.')[0]}_{i}.TW" if i > 0 else c)
         full_rank_names.append(f"{n}_{i}" if i > 0 else n)
@@ -714,7 +666,7 @@ if sector_stock_rows:
         with sec_cols[idx]:
             st.markdown(f"**{s_info['name']}** (`{s_info['code']}`)")
             st.caption(f"題材：{s_info['theme']}")
-            if st.button(f"🔍 檢視 {s_info['name']} K線", key=f"btn_sec_stk_{s_info['code']}", use_container_width=True):
+            if st.button(f"🔍 檢視 {s_info['name']} K線", key=f"btn_sec_stk_{s_info['code']}_{idx}", use_container_width=True):
                 st.session_state["selected_stock_code"] = s_info["code"]
 else:
     st.caption(f"💡 目前資料庫中【{selected_sector_tab}】暫無獨立成分股收錄。")
