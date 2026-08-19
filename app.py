@@ -140,13 +140,13 @@ def get_stock_data_source(ticker_list, data_source="yfinance", interval="1d", pe
 
 
 # ==========================================
-# 4. 繪製半圓形彩色儀表盤
+# 4. 繪製半圓形彩色儀表盤 (已加大頂部間距防止文字被裁切)
 # ==========================================
 def create_visual_gauge(title, val, min_val, max_val, prefix="", suffix="", status_label="", sub_text="", steps_config=None):
     fig = go.Figure(go.Indicator(
         mode="gauge+number",
         value=val,
-        number={'prefix': prefix, 'suffix': suffix, 'font': {'size': 32, 'color': '#0f172a', 'family': 'Arial Black'}},
+        number={'prefix': prefix, 'suffix': suffix, 'font': {'size': 30, 'color': '#0f172a', 'family': 'Arial Black'}},
         title={'text': f"<b>{title}</b><br><span style='font-size:12px;color:#059669;font-weight:bold;'>{status_label}</span><br><span style='font-size:11px;color:#94a3b8;'>{sub_text}</span>", 'font': {'size': 14, 'color': '#334155'}},
         gauge={
             'shape': "angular",
@@ -157,7 +157,13 @@ def create_visual_gauge(title, val, min_val, max_val, prefix="", suffix="", stat
             'steps': steps_config
         }
     ))
-    fig.update_layout(height=200, margin=dict(l=25, r=25, t=35, b=5), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+    # 將 height 調整為 240，margin.t 調整為 65，確保頂部三行文字完全展示
+    fig.update_layout(
+        height=240,
+        margin=dict(l=25, r=25, t=65, b=10),
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)'
+    )
     return fig
 
 
