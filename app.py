@@ -220,7 +220,8 @@ enable_three_bar_breakout = st.sidebar.checkbox("🔥 三盤突破", value=False
 enable_three_bar_breakdown = st.sidebar.checkbox("❄️ 三盤跌破", value=False)
 
 st.sidebar.subheader("2. 均線排列條件")
-enable_ma_trend = st.sidebar.checkbox("均線多頭 (Close > MA8 > MA21 > MA55)", value=False)
+# 已修改為 MA8 > MA21 > MA55
+enable_ma_trend = st.sidebar.checkbox("均線多頭 (MA8 > MA21 > MA55)", value=False)
 enable_vma_trend = st.sidebar.checkbox("成交量均線 VMA5 > VMA13 > VMA34", value=False)
 
 st.sidebar.subheader("3. 價量突破與創高")
@@ -328,7 +329,7 @@ for item in current_db:
     if is_three_bar_breakout:
         tags.append("三盤突破")
 
-    # 條件 1-2: 三盤跌破 (今收 < 昨收 且 今收 < 前天收)
+    # 條件 1-2: 三盤跌破
     is_three_bar_breakdown = (close < close_prev1) and (close < close_prev2)
     pass_three_breakdown = True
     if enable_three_bar_breakdown:
@@ -337,13 +338,14 @@ for item in current_db:
     if is_three_bar_breakdown:
         tags.append("三盤跌破")
 
-    # 條件 2: 均線多頭排列
+    # 條件 2: 均線多頭排列 (MA8 > MA21 > MA55)
+    is_ma_aligned = (curr['MA8'] > curr['MA21'] > curr['MA55'])
     pass_ma = True
     if enable_ma_trend:
-        if not (close > curr['MA8'] > curr['MA21'] > curr['MA55']):
+        if not is_ma_aligned:
             pass_ma = False
-        else:
-            tags.append("均線多頭")
+    if is_ma_aligned:
+        tags.append("均線多頭")
             
     # 條件 2-2: 量均線多頭
     pass_vma = True
@@ -382,7 +384,7 @@ for item in current_db:
     elif quick_filter == "⚡ 價量齊揚":
         pass_quick = (pct_change > 1.5 and volume > prev1['VMA5'])
     elif quick_filter == "🚀 均線多頭+爆量":
-        pass_quick = (close > curr['MA8'] > curr['MA21'] and volume >= prev1['VMA5'] * 1.3)
+        pass_quick = (is_ma_aligned and volume >= prev1['VMA5'] * 1.3)
     elif quick_filter == "🏆 創20日新高":
         if len(df) > 20:
             pass_quick = (close >= df['Close'].iloc[-21:-1].max())
