@@ -1,3 +1,4 @@
+Python
 import streamlit as st
 import yfinance as yf
 import pandas as pd
@@ -11,7 +12,7 @@ import io
 # ==========================================
 # 1. 頁面佈局與 CSS 樣式
 # ==========================================
-st.set_page_config(page_title="AI 投資資訊站", page_icon="🧠", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="AI 投資資訊站", page_icon="🧠", layout="wide", initial_
 
 st.markdown("""
 <style>
