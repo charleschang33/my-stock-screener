@@ -476,6 +476,33 @@ if rank_event and rank_event.selection and rank_event.selection.rows:
 
 st.divider()
 
+# ==========================================
+# 7. 即時市場行情動態抓取函式
+# ==========================================
+@st.cache_data(ttl=120, show_spinner=False)
+def fetch_live_market_quotes():
+    tickers = ["^GSPC", "^IXIC", "TX=F", "^TWII", "^TWOII", "TWD=X", "GC=F"]
+    data = yf.download(tickers, period="5d", interval="1d", auto_adjust=False, progress=False)
+    
+    quotes = {}
+    for t in tickers:
+        try:
+            if isinstance(data.columns, pd.MultiIndex):
+                df_t = data.xs(t, axis=1, level=1).dropna(how='all')
+            else:
+                df_t = data.dropna(how='all')
+            
+            if len(df_t) >= 2:
+                close_curr = float(df_t['Close'].iloc[-1])
+                close_prev = float(df_t['Close'].iloc[-2])
+                diff = close_curr - close_prev
+                pct = (diff / close_prev) * 100
+                quotes[t] = {"val": close_curr, "diff": diff, "pct": pct}
+            else:
+                quotes[t] = {"val": 0.0, "diff": 0.0, "pct": 0.0}
+        except Exception:
+            quotes[t] = {"val": 0.0, "diff": 0.0, "pct": 0.0}
+    return quotes
 
 # ==========================================
 # 8. 主畫面 UI 與 篩選邏輯
