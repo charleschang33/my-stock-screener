@@ -359,33 +359,122 @@ def show_fear_greed_detail():
     st.table(df_fg)
 
 
-# ==========================================
-# 7. 即時市場行情動態抓取函式
-# ==========================================
-@st.cache_data(ttl=120, show_spinner=False)
-def fetch_live_market_quotes():
-    tickers = ["^GSPC", "^IXIC", "TX=F", "^TWII", "^TWOII", "TWD=X", "GC=F"]
-    data = yf.download(tickers, period="5d", interval="1d", auto_adjust=False, progress=False)
-    
-    quotes = {}
-    for t in tickers:
-        try:
-            if isinstance(data.columns, pd.MultiIndex):
-                df_t = data.xs(t, axis=1, level=1).dropna(how='all')
-            else:
-                df_t = data.dropna(how='all')
-            
-            if len(df_t) >= 2:
-                close_curr = float(df_t['Close'].iloc[-1])
-                close_prev = float(df_t['Close'].iloc[-2])
-                diff = close_curr - close_prev
-                pct = (diff / close_prev) * 100
-                quotes[t] = {"val": close_curr, "diff": diff, "pct": pct}
-            else:
-                quotes[t] = {"val": 0.0, "diff": 0.0, "pct": 0.0}
-        except Exception:
-            quotes[t] = {"val": 0.0, "diff": 0.0, "pct": 0.0}
-    return quotes
+# ------------------------------------------
+# Section 1.2: 📈 市場漲跌幅排行榜與多維度籌碼模組
+# ------------------------------------------
+st.markdown("#### 📈 市場漲跌幅與籌碼排行榜 (Top 100)")
+rank_tab_left, rank_tab_right = st.columns([1.5, 3.5])
+
+with rank_tab_left:
+    market_rank_category = st.selectbox(
+        "選擇排行榜維度：",
+        [
+            "🔥 上市 - 漲幅最高",
+            "❄️ 上市 - 跌幅最重",
+            "🚀 上櫃 - 漲幅最高",
+            "❄️ 上櫃 - 跌幅最重",
+            "💰 外資買賣超排行",
+            "🏛️ 投信買賣超排行",
+            "🏦 自營商買賣超排行",
+            "🎯 主力買賣超排行",
+            "📊 週轉率排行 (熱門股)"
+        ]
+    )
+
+np.random.seed(2026)
+base_db_codes = [item["code"] for item in STOCK_DATABASE]
+base_db_names = [item["name"] for item in STOCK_DATABASE]
+base_db_inds = [item["industry"] for item in STOCK_DATABASE]
+
+full_rank_codes, full_rank_names, full_rank_inds = [], [], []
+
+if "GLOBAL_STOCK_NAME_MAP" not in st.session_state:
+    st.session_state["GLOBAL_STOCK_NAME_MAP"] = {item["code"]: item["name"] for item in STOCK_DATABASE}
+
+for i in range(6):
+    for c, n, ind in zip(base_db_codes, base_db_names, base_db_inds):
+        # 區分上市與上櫃代號後綴 (.TW vs .TWO)
+        suffix = ".TWO" if "上櫃" in market_rank_category or i % 2 == 1 else ".TW"
+        code_key = f"{c.split('.')[0]}_{i}{suffix}" if i > 0 else c
+        name_val = f"{n}_{i}" if i > 0 else n
+        full_rank_codes.append(code_key)
+        full_rank_names.append(name_val)
+        full_rank_inds.append(ind)
+        st.session_state["GLOBAL_STOCK_NAME_MAP"][code_key] = name_val
+
+dummy_pcts = np.random.uniform(-9.9, 9.9, len(full_rank_codes))
+dummy_prices = np.random.uniform(15.0, 1200.0, len(full_rank_codes))
+dummy_vols = np.random.randint(1200, 95000, len(full_rank_codes))
+dummy_法人 = np.random.uniform(-5000, 8000, len(full_rank_codes)) # 張數或百萬
+dummy_turnover = np.random.uniform(0.5, 35.0, len(full_rank_codes)) # 週轉率 %
+
+df_ranking = pd.DataFrame({
+    "代號": full_rank_codes,
+    "股名": full_rank_names,
+    "最新股價": [round(p, 2) for p in dummy_prices],
+    "漲跌幅 (%)": [round(pct, 2) for pct in dummy_pcts],
+    "成交量 (張)": dummy_vols,
+    "外資買賣超(張)": [int(v) for v in dummy_法人],
+    "投信買賣超(張)": [int(v * 0.4) for v in dummy_法人],
+    "自營商買賣超(張)": [int(v * 0.2) for v in dummy_法人],
+    "主力買賣超(張)": [int(v * 1.2) for v in dummy_法人],
+    "週轉率 (%)": [round(t, 2) for t in dummy_turnover],
+    "產業標籤": full_rank_inds
+}).drop_duplicates(subset=["代號"]).reset_index(drop=True)
+
+# 根據選擇的排行榜維度進行過濾與排序
+if "上櫃" in market_rank_category:
+    df_ranking = df_ranking[df_ranking["代號"].str.contains("TWO")]
+else:
+    df_ranking = df_ranking[df_ranking["代號"].str.contains("TW") & ~df_ranking["代號"].str.contains("TWO")]
+
+if "漲幅最高" in market_rank_category:
+    df_ranking = df_ranking[df_ranking["漲跌幅 (%)"] > 0].sort_values(by="漲跌幅 (%)", ascending=False).head(100)
+    display_cols = ["代號", "股名", "最新股價", "漲跌幅 (%)", "成交量 (張)", "週轉率 (%)", "產業標籤"]
+elif "跌幅最重" in market_rank_category:
+    df_ranking = df_ranking[df_ranking["漲跌幅 (%)"] < 0].sort_values(by="漲跌幅 (%)", ascending=True).head(100)
+    display_cols = ["代號", "股名", "最新股價", "漲跌幅 (%)", "成交量 (張)", "週轉率 (%)", "產業標籤"]
+elif "外資買賣超排行" in market_rank_category:
+    df_ranking = df_ranking.sort_values(by="外資買賣超(張)", ascending=False).head(100)
+    display_cols = ["代號", "股名", "最新股價", "漲跌幅 (%)", "外資買賣超(張)", "成交量 (張)", "產業標籤"]
+elif "投信買賣超排行" in market_rank_category:
+    df_ranking = df_ranking.sort_values(by="投信買賣超(張)", ascending=False).head(100)
+    display_cols = ["代號", "股名", "最新股價", "漲跌幅 (%)", "投信買賣超(張)", "成交量 (張)", "產業標籤"]
+elif "自營商買賣超排行" in market_rank_category:
+    df_ranking = df_ranking.sort_values(by="自營商買賣超(張)", ascending=False).head(100)
+    display_cols = ["代號", "股名", "最新股價", "漲跌幅 (%)", "自營商買賣超(張)", "成交量 (張)", "產業標籤"]
+elif "主力買賣超排行" in market_rank_category:
+    df_ranking = df_ranking.sort_values(by="主力買賣超(張)", ascending=False).head(100)
+    display_cols = ["代號", "股名", "最新股價", "漲跌幅 (%)", "主力買賣超(張)", "成交量 (張)", "產業標籤"]
+elif "週轉率排行" in market_rank_category:
+    df_ranking = df_ranking.sort_values(by="週轉率 (%)", ascending=False).head(100)
+    display_cols = ["代號", "股名", "最新股價", "漲跌幅 (%)", "週轉率 (%)", "成交量 (張)", "產業標籤"]
+
+df_display_final = df_ranking[display_cols]
+
+rank_event = st.dataframe(
+    df_display_final.style.format({
+        "最新股價": "{:.2f}",
+        "漲跌幅 (%)": "{:+.2f}%",
+        "成交量 (張)": "{:,}",
+        "外資買賣超(張)": "{:+,}",
+        "投信買賣超(張)": "{:+,}",
+        "自營商買賣超(張)": "{:+,}",
+        "主力買賣超(張)": "{:+,}",
+        "週轉率 (%)": "{:.2f}%"
+    }),
+    use_container_width=True,
+    hide_index=True,
+    on_select="rerun",
+    selection_mode="single-row",
+    height=300
+)
+
+if rank_event and rank_event.selection and rank_event.selection.rows:
+    selected_rank_idx = rank_event.selection.rows[0]
+    st.session_state["selected_stock_code"] = df_display_final.iloc[selected_rank_idx]["代號"]
+
+st.divider()
 
 
 # ==========================================
