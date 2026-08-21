@@ -473,26 +473,29 @@ with m_col8:
 st.markdown("<div style='margin-bottom: 8px;'></div>", unsafe_allow_html=True)
 
 # ------------------------------------------
-# Section 1: 頂部三大儀表圖
+# Section 1: 頂部三大儀表圖 (自動抓取當前系統日期)
 # ------------------------------------------
+current_date_str = datetime.now().strftime('%Y-%m-%d')
+current_datetime_str = datetime.now().strftime('%Y-%m-%d %H:%M')
+
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.plotly_chart(create_visual_gauge("大戶期權多空比", 27, -70, 70, "+", "%", "↑ 偏多 (多方佔優)", "2026-08-19 更新", [
+    st.plotly_chart(create_visual_gauge("大戶期權多空比", 27, -70, 70, "+", "%", "↑ 偏多 (多方佔優)", f"{current_date_str} 更新", [
         {'range': [-70, -20], 'color': '#ef4444'}, {'range': [-20, 20], 'color': '#f59e0b'}, {'range': [20, 70], 'color': '#10b981'}
     ], label_color="#059669"), use_container_width=True)
     if st.button("📊 點擊查看【大戶多空】計算明細", key="btn_opt", use_container_width=True):
         show_options_detail()
 
 with col2:
-    st.plotly_chart(create_visual_gauge("TW VIX 臺指波動率", 35.5, 0, 50, "", "", "↑ 高波動 (警戒)", "2026-08-19 更新", [
+    st.plotly_chart(create_visual_gauge("TW VIX 臺指波動率", 35.5, 0, 50, "", "", "↑ 高波動 (警戒)", f"{current_date_str} 更新", [
         {'range': [0, 18], 'color': '#10b981'}, {'range': [18, 30], 'color': '#f59e0b'}, {'range': [30, 50], 'color': '#ef4444'}
     ], label_color="#ef4444"), use_container_width=True)
     if st.button("📉 點擊查看【TW VIX】計算明細", key="btn_vix", use_container_width=True):
         show_vix_detail()
 
 with col3:
-    st.plotly_chart(create_visual_gauge("Fear & Greed 恐懼與貪婪", 64, 0, 100, "", "", "↑ 貪婪 (情緒熱絡)", "2026-08-19 23:59", [
+    st.plotly_chart(create_visual_gauge("Fear & Greed 恐懼與貪婪", 64, 0, 100, "", "", "↑ 貪婪 (情緒熱絡)", f"{current_datetime_str}", [
         {'range': [0, 35], 'color': '#10b981'}, {'range': [35, 65], 'color': '#f59e0b'}, {'range': [65, 100], 'color': '#ef4444'}
     ], label_color="#ef4444"), use_container_width=True)
     if st.button("🧭 點擊查看【恐懼貪婪】7大因子", key="btn_fg", use_container_width=True):
@@ -501,7 +504,7 @@ with col3:
 st.divider()
 
 # ------------------------------------------
-# Section 1.2: 📈 市場漲跌幅排行榜與多維度籌碼模組 (已移至三大半圓下方)
+# Section 1.2: 📈 市場漲跌幅排行榜與多維度籌碼模組
 # ------------------------------------------
 rank_header_col1, rank_header_col2 = st.columns([3, 1])
 with rank_header_col1:
