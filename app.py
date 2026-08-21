@@ -388,8 +388,120 @@ def show_fear_greed_detail():
     st.table(df_fg)
 
 
+# ==========================================
+# 8. 主畫面 UI 與 篩選邏輯
+# ==========================================
+st.markdown("<div class='main-header'>🧠 AI 投資資訊站 | 專屬量化選股儀表板</div>", unsafe_allow_html=True)
+
+if "selected_stock_code" not in st.session_state:
+    st.session_state["selected_stock_code"] = "2330.TW"
+
+live_quotes = fetch_live_market_quotes()
+
 # ------------------------------------------
-# Section 1.2: 📈 市場漲跌幅排行榜與多維度籌碼模組
+# Section 0: 動態即時市場行情看板
+# ------------------------------------------
+m_col1, m_col2, m_col3, m_col4, m_col5, m_col6, m_col7, m_col8 = st.columns(8)
+
+def render_market_card(col, title, code, fmt_val, is_currency=False):
+    q = live_quotes.get(code, {"val": 0, "diff": 0, "pct": 0})
+    val = q["val"] if q["val"] > 0 else 0.0
+    diff = q["diff"]
+    pct = q["pct"]
+    
+    badge_cls = "badge-up" if diff >= 0 else "badge-down"
+    arrow = "↑" if diff >= 0 else "↓"
+    sign = "+" if diff >= 0 else ""
+    
+    val_str = f"{val:,.2f}" if not is_currency else f"{val:.2f}"
+    
+    with col:
+        st.markdown(f"""
+        <div class="market-card">
+            <div class="market-title">{title}</div>
+            <div class="market-val">{val_str}</div>
+            <div class="{badge_cls}">{arrow} {sign}{diff:.2f} ({sign}{pct:.2f}%)</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+with m_col1:
+    render_market_card(m_col1, "🇺🇸 S&P 500", "^GSPC", "5,620.85")
+    if st.button("📈 看標普", key="btn_idx_sp500", use_container_width=True):
+        st.session_state["selected_stock_code"] = "^GSPC"
+
+with m_col2:
+    render_market_card(m_col2, "💻 Nasdaq", "^IXIC", "17,850.30")
+    if st.button("📈 看那指", key="btn_idx_nasdaq", use_container_width=True):
+        st.session_state["selected_stock_code"] = "^IXIC"
+
+with m_col3:
+    render_market_card(m_col3, "⚡ 臺指期指數", "TX=F", "23,860.00")
+    if st.button("📈 看臺指期", key="btn_idx_fut", use_container_width=True):
+        st.session_state["selected_stock_code"] = "TX=F"
+
+with m_col4:
+    render_market_card(m_col4, "🇹🇼 加權指數", "^TWII", "23,825.40")
+    if st.button("📈 看大盤", key="btn_idx_twii", use_container_width=True):
+        st.session_state["selected_stock_code"] = "^TWII"
+
+with m_col5:
+    render_market_card(m_col5, "🏢 櫃買指數", "^TWOII", "268.35")
+    if st.button("📈 看櫃買", key="btn_idx_twoii", use_container_width=True):
+        st.session_state["selected_stock_code"] = "^TWOII"
+
+with m_col6:
+    st.markdown("""
+    <div class="market-card">
+        <div class="market-title">🎯 選擇權 P/C</div>
+        <div class="market-val">118.5%</div>
+        <div class="badge-up">↑ 偏多支撐強勁</div>
+    </div>
+    """, unsafe_allow_html=True)
+    if st.button("📊 波動率", key="btn_idx_opt", use_container_width=True):
+        show_vix_detail()
+
+with m_col7:
+    render_market_card(m_col7, "💵 美元/台幣", "TWD=X", "31.91", is_currency=True)
+    if st.button("📈 看台幣", key="btn_idx_twd", use_container_width=True):
+        st.session_state["selected_stock_code"] = "TWD=X"
+
+with m_col8:
+    render_market_card(m_col8, "🥇 國際黃金", "GC=F", "4,395.80")
+    if st.button("📈 看黃金", key="btn_idx_gold", use_container_width=True):
+        st.session_state["selected_stock_code"] = "GC=F"
+
+st.markdown("<div style='margin-bottom: 8px;'></div>", unsafe_allow_html=True)
+
+# ------------------------------------------
+# Section 1: 頂部三大儀表圖
+# ------------------------------------------
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.plotly_chart(create_visual_gauge("大戶期權多空比", 27, -70, 70, "+", "%", "↑ 偏多 (多方佔優)", "2026-08-19 更新", [
+        {'range': [-70, -20], 'color': '#ef4444'}, {'range': [-20, 20], 'color': '#f59e0b'}, {'range': [20, 70], 'color': '#10b981'}
+    ], label_color="#059669"), use_container_width=True)
+    if st.button("📊 點擊查看【大戶多空】計算明細", key="btn_opt", use_container_width=True):
+        show_options_detail()
+
+with col2:
+    st.plotly_chart(create_visual_gauge("TW VIX 臺指波動率", 35.5, 0, 50, "", "", "↑ 高波動 (警戒)", "2026-08-19 更新", [
+        {'range': [0, 18], 'color': '#10b981'}, {'range': [18, 30], 'color': '#f59e0b'}, {'range': [30, 50], 'color': '#ef4444'}
+    ], label_color="#ef4444"), use_container_width=True)
+    if st.button("📉 點擊查看【TW VIX】計算明細", key="btn_vix", use_container_width=True):
+        show_vix_detail()
+
+with col3:
+    st.plotly_chart(create_visual_gauge("Fear & Greed 恐懼與貪婪", 64, 0, 100, "", "", "↑ 貪婪 (情緒熱絡)", "2026-08-19 23:59", [
+        {'range': [0, 35], 'color': '#10b981'}, {'range': [35, 65], 'color': '#f59e0b'}, {'range': [65, 100], 'color': '#ef4444'}
+    ], label_color="#ef4444"), use_container_width=True)
+    if st.button("🧭 點擊查看【恐懼貪婪】7大因子", key="btn_fg", use_container_width=True):
+        show_fear_greed_detail()
+
+st.divider()
+
+# ------------------------------------------
+# Section 1.2: 📈 市場漲跌幅排行榜與多維度籌碼模組 (已移至三大半圓下方)
 # ------------------------------------------
 st.markdown("#### 📈 市場漲跌幅與籌碼排行榜 (Top 100)")
 rank_tab_left, rank_tab_right = st.columns([1.5, 3.5])
@@ -502,117 +614,6 @@ if rank_event and rank_event.selection and rank_event.selection.rows:
     st.session_state["selected_stock_code"] = df_display_final.iloc[selected_rank_idx]["代號"]
 
 st.divider()
-
-
-# ==========================================
-# 8. 主畫面 UI 與 篩選邏輯
-# ==========================================
-st.markdown("<div class='main-header'>🧠 AI 投資資訊站 | 專屬量化選股儀表板</div>", unsafe_allow_html=True)
-
-if "selected_stock_code" not in st.session_state:
-    st.session_state["selected_stock_code"] = "2330.TW"
-
-live_quotes = fetch_live_market_quotes()
-
-# ------------------------------------------
-# Section 0: 動態即時市場行情看板
-# ------------------------------------------
-m_col1, m_col2, m_col3, m_col4, m_col5, m_col6, m_col7, m_col8 = st.columns(8)
-
-def render_market_card(col, title, code, fmt_val, is_currency=False):
-    q = live_quotes.get(code, {"val": 0, "diff": 0, "pct": 0})
-    val = q["val"] if q["val"] > 0 else 0.0
-    diff = q["diff"]
-    pct = q["pct"]
-    
-    badge_cls = "badge-up" if diff >= 0 else "badge-down"
-    arrow = "↑" if diff >= 0 else "↓"
-    sign = "+" if diff >= 0 else ""
-    
-    val_str = f"{val:,.2f}" if not is_currency else f"{val:.2f}"
-    
-    with col:
-        st.markdown(f"""
-        <div class="market-card">
-            <div class="market-title">{title}</div>
-            <div class="market-val">{val_str}</div>
-            <div class="{badge_cls}">{arrow} {sign}{diff:.2f} ({sign}{pct:.2f}%)</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-with m_col1:
-    render_market_card(m_col1, "🇺🇸 S&P 500", "^GSPC", "5,620.85")
-    if st.button("📈 看標普", key="btn_idx_sp500", use_container_width=True):
-        st.session_state["selected_stock_code"] = "^GSPC"
-
-with m_col2:
-    render_market_card(m_col2, "💻 Nasdaq", "^IXIC", "17,850.30")
-    if st.button("📈 看那指", key="btn_idx_nasdaq", use_container_width=True):
-        st.session_state["selected_stock_code"] = "^IXIC"
-
-with m_col3:
-    render_market_card(m_col3, "⚡ 臺指期指數", "TX=F", "23,860.00")
-    if st.button("📈 看臺指期", key="btn_idx_fut", use_container_width=True):
-        st.session_state["selected_stock_code"] = "TX=F"
-
-with m_col4:
-    render_market_card(m_col4, "🇹🇼 加權指數", "^TWII", "23,825.40")
-    if st.button("📈 看大盤", key="btn_idx_twii", use_container_width=True):
-        st.session_state["selected_stock_code"] = "^TWII"
-
-with m_col5:
-    render_market_card(m_col5, "🏢 櫃買指數", "^TWOII", "268.35")
-    if st.button("📈 看櫃買", key="btn_idx_twoii", use_container_width=True):
-        st.session_state["selected_stock_code"] = "^TWOII"
-
-with m_col6:
-    st.markdown("""
-    <div class="market-card">
-        <div class="market-title">🎯 選擇權 P/C</div>
-        <div class="market-val">118.5%</div>
-        <div class="badge-up">↑ 偏多支撐強勁</div>
-    </div>
-    """, unsafe_allow_html=True)
-    if st.button("📊 波動率", key="btn_idx_opt", use_container_width=True):
-        show_vix_detail()
-
-with m_col7:
-    render_market_card(m_col7, "💵 美元/台幣", "TWD=X", "31.91", is_currency=True)
-    if st.button("📈 看台幣", key="btn_idx_twd", use_container_width=True):
-        st.session_state["selected_stock_code"] = "TWD=X"
-
-with m_col8:
-    render_market_card(m_col8, "🥇 國際黃金", "GC=F", "4,395.80")
-    if st.button("📈 看黃金", key="btn_idx_gold", use_container_width=True):
-        st.session_state["selected_stock_code"] = "GC=F"
-
-st.markdown("<div style='margin-bottom: 8px;'></div>", unsafe_allow_html=True)
-
-# ------------------------------------------
-# Section 1: 頂部三大儀表圖
-# ------------------------------------------
-col1, col2, col3 = st.columns(3)
-
-with col1:
-    st.plotly_chart(create_visual_gauge("大戶期權多空比", 27, -70, 70, "+", "%", "↑ 偏多 (多方佔優)", "2026-08-19 更新", [
-        {'range': [-70, -20], 'color': '#ef4444'}, {'range': [-20, 20], 'color': '#f59e0b'}, {'range': [20, 70], 'color': '#10b981'}
-    ], label_color="#059669"), use_container_width=True)
-    if st.button("📊 點擊查看【大戶多空】計算明細", key="btn_opt", use_container_width=True):
-        show_options_detail()
-
-with col2:
-    st.plotly_chart(create_visual_gauge("TW VIX 臺指波動率", 35.5, 0, 50, "", "", "↑ 高波動 (警戒)", "2026-08-19 更新", [
-        {'range': [0, 18], 'color': '#10b981'}, {'range': [18, 30], 'color': '#f59e0b'}, {'range': [30, 50], 'color': '#ef4444'}
-    ], label_color="#ef4444"), use_container_width=True)
-    if st.button("📉 點擊查看【TW VIX】計算明細", key="btn_vix", use_container_width=True):
-        show_vix_detail()
-
-with col3:
-    st.plotly_chart(create_visual_gauge("Fear & Greed 恐懼與貪婪", 64, 0, 100, "", "", "↑ 貪婪 (情緒熱絡)", "2026-08-19 23:59", [
-        {'range': [0, 35], 'color': '#10b981'}, {'range': [35, 65], 'color': '#f59e0b'}, {'range': [65, 100], 'color': '#ef4444'}
-    ], label_color="#ef4444"), use_container_width=True)
-    if st.button("🧭 點擊查看【恐懼貪婪】7大因子", key="btn_fg", use_container_width=True):
-        show_fear_greed_detail()
 
 
 # ------------------------------------------
