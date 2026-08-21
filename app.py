@@ -296,8 +296,9 @@ def create_visual_gauge(title, val, min_val, max_val, prefix="", suffix="", stat
     )
     return fig
 
+
 # ==========================================
-# 7. 即時市場行情動態抓取函式
+# 6. 即時市場行情動態抓取函式
 # ==========================================
 @st.cache_data(ttl=120, show_spinner=False)
 def fetch_live_market_quotes():
@@ -324,8 +325,9 @@ def fetch_live_market_quotes():
             quotes[t] = {"val": 0.0, "diff": 0.0, "pct": 0.0}
     return quotes
 
+
 # ==========================================
-# 6. 儀表盤點擊彈出明細視窗
+# 7. 儀表盤點擊彈出明細視窗
 # ==========================================
 @st.dialog("📊 大戶期權多空比 - 計算數據明細")
 def show_options_detail():
@@ -361,7 +363,7 @@ def show_vix_detail():
     col_a, col_b, col_c = st.columns(3)
     col_a.metric("即時 TW VIX", "35.50", "高波動警戒")
     col_b.metric("20日均值", "24.10", "常態基準")
-    col_b.metric("60日最高值", "42.80", "歷史壓力")
+    col_c.metric("60日最高值", "42.80", "歷史壓力")
 
 
 @st.dialog("🧭 CNN 恐懼與貪婪指數 - 7 大組成因子")
@@ -420,7 +422,6 @@ if "GLOBAL_STOCK_NAME_MAP" not in st.session_state:
 
 for i in range(6):
     for c, n, ind in zip(base_db_codes, base_db_names, base_db_inds):
-        # 區分上市與上櫃代號後綴 (.TW vs .TWO)
         suffix = ".TWO" if "上櫃" in market_rank_category or i % 2 == 1 else ".TW"
         code_key = f"{c.split('.')[0]}_{i}{suffix}" if i > 0 else c
         name_val = f"{n}_{i}" if i > 0 else n
@@ -432,8 +433,8 @@ for i in range(6):
 dummy_pcts = np.random.uniform(-9.9, 9.9, len(full_rank_codes))
 dummy_prices = np.random.uniform(15.0, 1200.0, len(full_rank_codes))
 dummy_vols = np.random.randint(1200, 95000, len(full_rank_codes))
-dummy_法人 = np.random.uniform(-5000, 8000, len(full_rank_codes)) # 張數或百萬
-dummy_turnover = np.random.uniform(0.5, 35.0, len(full_rank_codes)) # 週轉率 %
+dummy_法人 = np.random.uniform(-5000, 8000, len(full_rank_codes))
+dummy_turnover = np.random.uniform(0.5, 35.0, len(full_rank_codes))
 
 df_ranking = pd.DataFrame({
     "代號": full_rank_codes,
@@ -449,7 +450,6 @@ df_ranking = pd.DataFrame({
     "產業標籤": full_rank_inds
 }).drop_duplicates(subset=["代號"]).reset_index(drop=True)
 
-# 根據選擇的排行榜維度進行過濾與排序
 if "上櫃" in market_rank_category:
     df_ranking = df_ranking[df_ranking["代號"].str.contains("TWO")]
 else:
@@ -512,7 +512,6 @@ st.markdown("<div class='main-header'>🧠 AI 投資資訊站 | 專屬量化選�
 if "selected_stock_code" not in st.session_state:
     st.session_state["selected_stock_code"] = "2330.TW"
 
-# 取得最新即時行情數據以填入頂部 8 大卡片
 live_quotes = fetch_live_market_quotes()
 
 # ------------------------------------------
@@ -905,7 +904,6 @@ for item in current_db:
         
     tags = []
     
-    # 基本面條件檢查
     pass_fund_rev = True
     if enable_rev_grow:
         if rev_yoy >= min_rev_yoy:
@@ -936,7 +934,6 @@ for item in current_db:
 
     is_super_stock = (rev_yoy >= 20.0 and psr <= 1.5 and csr >= 0.5 and clg >= 20.0)
 
-    # 技術面條件
     is_three_bar_breakout = (close > close_prev1) and (close > close_prev2)
     pass_three_bar = True
     if enable_three_bar_breakout:
@@ -1035,7 +1032,6 @@ for item in current_db:
         else:
             pass_high_custom = False
 
-    # 快捷頁籤判定
     pass_quick = True
     if quick_filter == "🚀 基本面飆股":
         pass_quick = is_super_stock
@@ -1075,6 +1071,7 @@ for item in current_db:
             "題材/特徵": theme,
             "觸發特徵": " | ".join(tags) if tags else "符合條件"
         })
+
 
 # ------------------------------------------
 # Section 4: 表格呈現
@@ -1139,7 +1136,6 @@ elif not df_result.empty:
     # ------------------------------------------
     # Section 5: Plotly 互動式 K 線與多週期、多指標切換系統
     # ------------------------------------------
-   # 📈 技術分析與多週期圖表選單
     all_view_options = {}
     for idx_item in MARKET_INDICES:
         all_view_options[idx_item["code"]] = f"📊 {idx_item['name']} ({idx_item['code']})"
@@ -1164,7 +1160,6 @@ elif not df_result.empty:
             continue
         stock_name = global_name_map.get(code, "")
         all_view_options[code] = f"{code} {stock_name}".strip()
-      
         
     code_list = list(all_view_options.keys())
     current_selected = st.session_state.get("selected_stock_code", code_list[0])
@@ -1213,12 +1208,10 @@ elif not df_result.empty:
         )
         
     c_interval, c_period = chart_tf_map[chart_tf]
-    # 自動將帶有底線後綴的代號（如 3605_2.TW）還原成真實 Yahoo 代號（如 3605.TW）供 yfinance 抓取
     real_yf_code = selected_code.split('_')[0] + '.TW' if '_' in selected_code and not selected_code.startswith('^') else selected_code
     
     chart_stock_dict = get_stock_data_source([real_yf_code], data_source="yfinance", interval=c_interval, period=c_period)
     
-    # 讓後續繪圖程式可以對應到正確的 DataFrame key
     if real_yf_code in chart_stock_dict and selected_code not in chart_stock_dict:
         chart_stock_dict[selected_code] = chart_stock_dict[real_yf_code]
     
@@ -1498,7 +1491,6 @@ elif not df_result.empty:
                 )
             )
 
-            # 跨圖垂直十字引導虛線
             fig_k.update_xaxes(
                 showspikes=True,
                 spikemode="across",
