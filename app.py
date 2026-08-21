@@ -503,24 +503,9 @@ st.divider()
 # ------------------------------------------
 # Section 1.2: 📈 市場漲跌幅排行榜與多維度籌碼模組 (已移至三大半圓下方)
 # ------------------------------------------
-st.markdown("#### 📈 市場漲跌幅與籌碼排行榜 (Top 100)")
-rank_tab_left, rank_tab_right = st.columns([1.5, 3.5])
-
-with rank_tab_left:
-    market_rank_category = st.selectbox(
-        "選擇排行榜維度：",
-        [
-            "🔥 上市 - 漲幅最高",
-            "❄️ 上市 - 跌幅最重",
-            "🚀 上櫃 - 漲幅最高",
-            "❄️ 上櫃 - 跌幅最重",
-            "💰 外資買賣超排行",
-            "🏛️ 投信買賣超排行",
-            "🏦 自營商買賣超排行",
-            "🎯 主力買賣超排行",
-            "📊 週轉率排行 (熱門股)"
-        ]
-    )
+rank_header_col1, rank_header_col2 = st.columns([3, 1])
+with rank_header_col1:
+    st.markdown("#### 📈 市場漲跌幅與籌碼排行榜 (Top 100)")
 
 np.random.seed(2026)
 base_db_codes = [item["code"] for item in STOCK_DATABASE]
@@ -534,7 +519,7 @@ if "GLOBAL_STOCK_NAME_MAP" not in st.session_state:
 
 for i in range(6):
     for c, n, ind in zip(base_db_codes, base_db_names, base_db_inds):
-        suffix = ".TWO" if "上櫃" in market_rank_category or i % 2 == 1 else ".TW"
+        suffix = ".TWO" if "上櫃" in locals().get("market_rank_category", "") or i % 2 == 1 else ".TW"
         code_key = f"{c.split('.')[0]}_{i}{suffix}" if i > 0 else c
         name_val = f"{n}_{i}" if i > 0 else n
         full_rank_codes.append(code_key)
@@ -561,6 +546,24 @@ df_ranking = pd.DataFrame({
     "週轉率 (%)": [round(t, 2) for t in dummy_turnover],
     "產業標籤": full_rank_inds
 }).drop_duplicates(subset=["代號"]).reset_index(drop=True)
+
+rank_tab_left, rank_tab_right = st.columns([1.5, 3.5])
+
+with rank_tab_left:
+    market_rank_category = st.selectbox(
+        "選擇排行榜維度：",
+        [
+            "🔥 上市 - 漲幅最高",
+            "❄️ 上市 - 跌幅最重",
+            "🚀 上櫃 - 漲幅最高",
+            "❄️ 上櫃 - 跌幅最重",
+            "💰 外資買賣超排行",
+            "🏛️ 投信買賣超排行",
+            "🏦 自營商買賣超排行",
+            "🎯 主力買賣超排行",
+            "📊 週轉率排行 (熱門股)"
+        ]
+    )
 
 if "上櫃" in market_rank_category:
     df_ranking = df_ranking[df_ranking["代號"].str.contains("TWO")]
@@ -590,6 +593,20 @@ elif "週轉率排行" in market_rank_category:
     display_cols = ["代號", "股名", "最新股價", "漲跌幅 (%)", "週轉率 (%)", "成交量 (張)", "產業標籤"]
 
 df_display_final = df_ranking[display_cols]
+
+with rank_header_col2:
+    st.markdown("<div style='margin-top: 24px;'></div>", unsafe_allow_html=True)
+    if not df_display_final.empty:
+        rank_buffer = io.BytesIO()
+        with pd.ExcelWriter(rank_buffer, engine='openpyxl') as writer:
+            df_display_final.to_excel(writer, index=False, sheet_name='排行榜')
+        st.download_button(
+            label="📥 下載 Excel",
+            data=rank_buffer.getvalue(),
+            file_name=f"Market_Ranking_{pd.Timestamp.now().strftime('%Y%m%d_%H%M')}.xlsx",
+            mime="application/vnd.ms-excel",
+            key="btn_download_ranking"
+        )
 
 rank_event = st.dataframe(
     df_display_final.style.format({
