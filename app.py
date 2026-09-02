@@ -135,7 +135,8 @@ STOCK_DATABASE = [
     {"code": "8210.TW", "name": "勤誠", "industry": "電腦週邊", "theme": "伺服器機殼", "market_cap_bil": 32.0, "rev_yoy": 36.0, "psr": 2.1, "csr": 0.70, "clg": 40.0},
     {"code": "3653.TW", "name": "健策", "industry": "電子零組件", "theme": "均熱片、水冷散熱", "market_cap_bil": 290.0, "rev_yoy": 40.0, "psr": 7.5, "csr": 0.90, "clg": 60.0},
     {"code": "6442.TW", "name": "光聖", "industry": "通信網路", "theme": "光通訊、CPO", "market_cap_bil": 28.0, "rev_yoy": 85.0, "psr": 4.8, "csr": 0.92, "clg": 90.0},
-    {"code": "3163.TW", "name": "波若威", "industry": "通信網路", "theme": "高速光通訊", "market_cap_bil": 12.0, "rev_yoy": 24.0, "psr": 2.2, "csr": 0.55, "clg": 25.0}
+    {"code": "3163.TW", "name": "波若威", "industry": "通信網路", "theme": "高速光通訊", "market_cap_bil": 12.0, "rev_yoy": 24.0, "psr": 2.2, "csr": 0.55, "clg": 25.0},
+    {"code": "5425.TW", "name": "台半", "industry": "半導體", "theme": "車用整流二極管", "market_cap_bil": 14.0, "rev_yoy": 22.5, "psr": 1.8, "csr": 0.60, "clg": 32.0}
 ]
 
 US_STOCK_DATABASE = [
@@ -327,7 +328,7 @@ def fetch_live_market_quotes():
 
 
 # ==========================================
-# 7. 儀表盤點擊彈出明細視窗
+# 7. 彈出明細視窗
 # ==========================================
 @st.dialog("📊 大戶期權多空比 - 計算數據明細")
 def show_options_detail():
@@ -473,7 +474,7 @@ with m_col8:
 st.markdown("<div style='margin-bottom: 8px;'></div>", unsafe_allow_html=True)
 
 # ------------------------------------------
-# Section 1: 頂部三大儀表圖 (自動抓取當前系統日期)
+# Section 1: 頂部三大儀表圖
 # ------------------------------------------
 current_date_str = datetime.now().strftime('%Y-%m-%d')
 current_datetime_str = datetime.now().strftime('%Y-%m-%d %H:%M')
@@ -504,272 +505,7 @@ with col3:
 st.divider()
 
 # ------------------------------------------
-# Section 1.2: 📈 市場漲跌幅排行榜與多維度籌碼模組
-# ------------------------------------------
-rank_header_col1, rank_header_col2 = st.columns([3, 1])
-with rank_header_col1:
-    st.markdown("#### 📈 市場漲跌幅與籌碼排行榜 (Top 100)")
-
-np.random.seed(2026)
-base_db_codes = [item["code"] for item in STOCK_DATABASE]
-base_db_names = [item["name"] for item in STOCK_DATABASE]
-base_db_inds = [item["industry"] for item in STOCK_DATABASE]
-
-full_rank_codes, full_rank_names, full_rank_inds = [], [], []
-
-if "GLOBAL_STOCK_NAME_MAP" not in st.session_state:
-    st.session_state["GLOBAL_STOCK_NAME_MAP"] = {item["code"]: item["name"] for item in STOCK_DATABASE}
-
-for i in range(6):
-    for c, n, ind in zip(base_db_codes, base_db_names, base_db_inds):
-        suffix = ".TWO" if "上櫃" in locals().get("market_rank_category", "") or i % 2 == 1 else ".TW"
-        code_key = f"{c.split('.')[0]}_{i}{suffix}" if i > 0 else c
-        name_val = f"{n}_{i}" if i > 0 else n
-        full_rank_codes.append(code_key)
-        full_rank_names.append(name_val)
-        full_rank_inds.append(ind)
-        st.session_state["GLOBAL_STOCK_NAME_MAP"][code_key] = name_val
-
-dummy_pcts = np.random.uniform(-9.9, 9.9, len(full_rank_codes))
-dummy_prices = np.random.uniform(15.0, 1200.0, len(full_rank_codes))
-dummy_vols = np.random.randint(1200, 95000, len(full_rank_codes))
-dummy_法人 = np.random.uniform(-5000, 8000, len(full_rank_codes))
-dummy_turnover = np.random.uniform(0.5, 35.0, len(full_rank_codes))
-
-df_ranking = pd.DataFrame({
-    "代號": full_rank_codes,
-    "股名": full_rank_names,
-    "最新股價": [round(p, 2) for p in dummy_prices],
-    "漲跌幅 (%)": [round(pct, 2) for pct in dummy_pcts],
-    "成交量 (張)": dummy_vols,
-    "外資買賣超(張)": [int(v) for v in dummy_法人],
-    "投信買賣超(張)": [int(v * 0.4) for v in dummy_法人],
-    "自營商買賣超(張)": [int(v * 0.2) for v in dummy_法人],
-    "主力買賣超(張)": [int(v * 1.2) for v in dummy_法人],
-    "週轉率 (%)": [round(t, 2) for t in dummy_turnover],
-    "產業標籤": full_rank_inds
-}).drop_duplicates(subset=["代號"]).reset_index(drop=True)
-
-rank_tab_left, rank_tab_right = st.columns([1.5, 3.5])
-
-with rank_tab_left:
-    market_rank_category = st.selectbox(
-        "選擇排行榜維度：",
-        [
-            "🔥 上市 - 漲幅最高",
-            "❄️ 上市 - 跌幅最重",
-            "🚀 上櫃 - 漲幅最高",
-            "❄️ 上櫃 - 跌幅最重",
-            "💰 外資買賣超排行",
-            "🏛️ 投信買賣超排行",
-            "🏦 自營商買賣超排行",
-            "🎯 主力買賣超排行",
-            "📊 週轉率排行 (熱門股)"
-        ]
-    )
-
-if "上櫃" in market_rank_category:
-    df_ranking = df_ranking[df_ranking["代號"].str.contains("TWO")]
-else:
-    df_ranking = df_ranking[df_ranking["代號"].str.contains("TW") & ~df_ranking["代號"].str.contains("TWO")]
-
-if "漲幅最高" in market_rank_category:
-    df_ranking = df_ranking[df_ranking["漲跌幅 (%)"] > 0].sort_values(by="漲跌幅 (%)", ascending=False).head(100)
-    display_cols = ["代號", "股名", "最新股價", "漲跌幅 (%)", "成交量 (張)", "週轉率 (%)", "產業標籤"]
-elif "跌幅最重" in market_rank_category:
-    df_ranking = df_ranking[df_ranking["漲跌幅 (%)"] < 0].sort_values(by="漲跌幅 (%)", ascending=True).head(100)
-    display_cols = ["代號", "股名", "最新股價", "漲跌幅 (%)", "成交量 (張)", "週轉率 (%)", "產業標籤"]
-elif "外資買賣超排行" in market_rank_category:
-    df_ranking = df_ranking.sort_values(by="外資買賣超(張)", ascending=False).head(100)
-    display_cols = ["代號", "股名", "最新股價", "漲跌幅 (%)", "外資買賣超(張)", "成交量 (張)", "產業標籤"]
-elif "投信買賣超排行" in market_rank_category:
-    df_ranking = df_ranking.sort_values(by="投信買賣超(張)", ascending=False).head(100)
-    display_cols = ["代號", "股名", "最新股價", "漲跌幅 (%)", "投信買賣超(張)", "成交量 (張)", "產業標籤"]
-elif "自營商買賣超排行" in market_rank_category:
-    df_ranking = df_ranking.sort_values(by="自營商買賣超(張)", ascending=False).head(100)
-    display_cols = ["代號", "股名", "最新股價", "漲跌幅 (%)", "自營商買賣超(張)", "成交量 (張)", "產業標籤"]
-elif "主力買賣超排行" in market_rank_category:
-    df_ranking = df_ranking.sort_values(by="主力買賣超(張)", ascending=False).head(100)
-    display_cols = ["代號", "股名", "最新股價", "漲跌幅 (%)", "主力買賣超(張)", "成交量 (張)", "產業標籤"]
-elif "週轉率排行" in market_rank_category:
-    df_ranking = df_ranking.sort_values(by="週轉率 (%)", ascending=False).head(100)
-    display_cols = ["代號", "股名", "最新股價", "漲跌幅 (%)", "週轉率 (%)", "成交量 (張)", "產業標籤"]
-
-df_display_final = df_ranking[display_cols]
-
-with rank_header_col2:
-    st.markdown("<div style='margin-top: 24px;'></div>", unsafe_allow_html=True)
-    if not df_display_final.empty:
-        rank_buffer = io.BytesIO()
-        with pd.ExcelWriter(rank_buffer, engine='openpyxl') as writer:
-            df_display_final.to_excel(writer, index=False, sheet_name='排行榜')
-        st.download_button(
-            label="📥 下載 Excel",
-            data=rank_buffer.getvalue(),
-            file_name=f"Market_Ranking_{pd.Timestamp.now().strftime('%Y%m%d_%H%M')}.xlsx",
-            mime="application/vnd.ms-excel",
-            key="btn_download_ranking"
-        )
-
-rank_event = st.dataframe(
-    df_display_final.style.format({
-        "最新股價": "{:.2f}",
-        "漲跌幅 (%)": "{:+.2f}%",
-        "成交量 (張)": "{:,}",
-        "外資買賣超(張)": "{:+,}",
-        "投信買賣超(張)": "{:+,}",
-        "自營商買賣超(張)": "{:+,}",
-        "主力買賣超(張)": "{:+,}",
-        "週轉率 (%)": "{:.2f}%"
-    }),
-    use_container_width=True,
-    hide_index=True,
-    on_select="rerun",
-    selection_mode="single-row",
-    height=300
-)
-
-if rank_event and rank_event.selection and rank_event.selection.rows:
-    selected_rank_idx = rank_event.selection.rows[0]
-    st.session_state["selected_stock_code"] = df_display_final.iloc[selected_rank_idx]["代號"]
-
-st.divider()
-
-
-# ------------------------------------------
-# Section 1.5: 族群成交量價比較 與 個股漲跌分佈
-# ------------------------------------------
-col_sec_left, col_sec_right = st.columns([1.1, 0.9])
-
-with col_sec_left:
-    st.markdown("#### 🔥 台股主要族群成交量與漲跌幅比較")
-    sector_data = pd.DataFrame({
-        "族群名稱": ["半導體", "電腦週邊", "電子零組件", "其他電子/設備", "光電/鏡頭", "航運海運", "金融保險", "綠能重電"],
-        "成交金額 (億)": [1680, 840, 430, 310, 195, 210, 165, 120],
-        "成交比重 (%)": [42.5, 21.3, 10.9, 7.8, 4.9, 5.3, 4.2, 3.1],
-        "族群平均漲跌 (%)": [1.45, 0.82, -0.45, 1.85, 2.10, 0.35, -0.20, 0.95]
-    })
-
-    fig_sector = make_subplots(specs=[[{"secondary_y": True}]])
-    fig_sector.add_trace(
-        go.Bar(
-            x=sector_data["族群名稱"],
-            y=sector_data["成交金額 (億)"],
-            name="成交金額 (億元)",
-            marker_color="#3b82f6",
-            hovertemplate="<b>%{x}</b><br>成交金額: %{y} 億<br>資金比重: %{customdata}%<extra></extra>",
-            customdata=sector_data["成交比重 (%)"]
-        ),
-        secondary_y=False
-    )
-    scatter_colors = ['#ef4444' if pct >= 0 else '#22c55e' for pct in sector_data["族群平均漲跌 (%)"]]
-    fig_sector.add_trace(
-        go.Scatter(
-            x=sector_data["族群名稱"],
-            y=sector_data["族群平均漲跌 (%)"],
-            name="族群漲跌幅 (%)",
-            mode="lines+markers+text",
-            line=dict(color="#f59e0b", width=2.5),
-            marker=dict(size=8, color=scatter_colors),
-            text=[f"{pct:+.2f}%" for pct in sector_data["族群平均漲跌 (%)"]],
-            textposition="top center",
-            textfont=dict(color=scatter_colors, size=11, family="Arial Black")
-        ),
-        secondary_y=True
-    )
-    fig_sector.update_layout(
-        height=320,
-        margin=dict(l=10, r=10, t=30, b=10),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)'
-    )
-    fig_sector.update_yaxes(title_text="成交金額 (億)", secondary_y=False, showgrid=True, gridcolor="#f1f5f9")
-    fig_sector.update_yaxes(title_text="漲跌幅 (%)", secondary_y=True, showgrid=False, range=[-1.2, 3.2])
-    st.plotly_chart(fig_sector, use_container_width=True)
-
-with col_sec_right:
-    c_head_left, c_head_right = st.columns([1.5, 1])
-    with c_head_left:
-        st.markdown("#### 📊 個股漲跌分佈")
-    with c_head_right:
-        market_breadth_type = st.radio("市場：", ["上市", "上櫃"], horizontal=True, label_visibility="collapsed")
-
-    if market_breadth_type == "上市":
-        b_labels = ["漲停", ">5%", "2-5%", "0-2%", "平盤", "0-2%", "2-5%", "<5%", "跌停"]
-        b_counts = [9, 13, 71, 294, 115, 483, 105, 20, 1]
-        b_colors = ["#dc2626", "#ef4444", "#f87171", "#fca5a5", "#94a3b8", "#86efac", "#4ade80", "#22c55e", "#16a34a"]
-        up_cnt, down_cnt, flat_cnt = 387, 609, 115
-        total_cnt = up_cnt + down_cnt + flat_cnt
-    else:
-        b_labels = ["漲停", ">5%", "2-5%", "0-2%", "平盤", "0-2%", "2-5%", "<5%", "跌停"]
-        b_counts = [15, 22, 95, 260, 80, 310, 85, 18, 2]
-        b_colors = ["#dc2626", "#ef4444", "#f87171", "#fca5a5", "#94a3b8", "#86efac", "#4ade80", "#22c55e", "#16a34a"]
-        up_cnt, down_cnt, flat_cnt = 392, 415, 80
-        total_cnt = up_cnt + down_cnt + flat_cnt
-
-    fig_breadth = go.Figure(go.Bar(
-        x=b_labels,
-        y=b_counts,
-        text=b_counts,
-        textposition='outside',
-        textfont=dict(size=11, family="Arial Black", color="#334155"),
-        marker_color=b_colors,
-        hovertemplate="<b>%{x}</b>: %{y} 家<extra></extra>"
-    ))
-    fig_breadth.update_layout(
-        height=240,
-        margin=dict(l=10, r=10, t=25, b=10),
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        yaxis=dict(showgrid=True, gridcolor="#f1f5f9", range=[0, max(b_counts) * 1.25])
-    )
-    st.plotly_chart(fig_breadth, use_container_width=True)
-
-    up_pct = (up_cnt / total_cnt) * 100
-    down_pct = (down_cnt / total_cnt) * 100
-    flat_pct = (flat_cnt / total_cnt) * 100
-
-    st.markdown(f"""
-    <div class="breadth-bar">
-        <div style="width: {up_pct:.1f}%; background-color: #ef4444;"></div>
-        <div style="width: {flat_pct:.1f}%; background-color: #94a3b8;"></div>
-        <div style="width: {down_pct:.1f}%; background-color: #22c55e;"></div>
-    </div>
-    <div style="text-align: center; font-size: 13px; font-weight: 700; color: #334155;">
-        漲跌家數比 <span style="color:#ef4444;">{up_cnt} ({up_pct:.1f}%)</span> : <span style="color:#22c55e;">{down_cnt} ({down_pct:.1f}%)</span>
-    </div>
-    """, unsafe_allow_html=True)
-
-st.markdown("👇 **點選下方族群名稱，立即展開成分股與量價明細：**")
-selected_sector_tab = st.radio(
-    "選擇要檢視成分股的族群：",
-    sector_data["族群名稱"].tolist(),
-    horizontal=True,
-    label_visibility="collapsed"
-)
-
-sector_stock_rows = []
-for s_item in STOCK_DATABASE:
-    if s_item["industry"] == selected_sector_tab:
-        sector_stock_rows.append(s_item)
-
-if sector_stock_rows:
-    st.info(f"📂 **【{selected_sector_tab}】族群成分股列表（點擊可直接切換下方 K 線圖表）：**")
-    sec_cols = st.columns(len(sector_stock_rows))
-    for idx, s_info in enumerate(sector_stock_rows):
-        with sec_cols[idx]:
-            st.markdown(f"**{s_info['name']}** (`{s_info['code']}`)")
-            st.caption(f"題材：{s_info['theme']}")
-            if st.button(f"🔍 檢視 {s_info['name']} K線", key=f"btn_sec_stk_{s_info['code']}_{idx}", use_container_width=True):
-                st.session_state["selected_stock_code"] = s_info["code"]
-else:
-    st.caption(f"💡 目前資料庫中【{selected_sector_tab}】暫無獨立成分股收錄。")
-
-st.divider()
-
-# ------------------------------------------
-# Sidebar: 側邊欄設定
+# Sidebar: 側邊欄設定 (已整合丹尼爾選股模組參數)
 # ------------------------------------------
 st.sidebar.header("⚙️ 篩選條件設定")
 
@@ -794,7 +530,15 @@ timeframe_map = {
 selected_timeframe = st.sidebar.selectbox("⏱️ 選股分析週期", list(timeframe_map.keys()), index=0)
 interval_code, period_code = timeframe_map[selected_timeframe]
 
-st.sidebar.subheader("1. 🚀 基本面飆股條件")
+# ------------------------------------------
+# 🌟 整合丹尼爾「波段主流股」特選與技術指標條件
+# ------------------------------------------
+st.sidebar.subheader("🎯 丹尼爾波段主流股特選模組")
+enable_dan_10high = st.sidebar.checkbox("股價創 10 日新高", value=True)
+enable_dan_ma20_tight = st.sidebar.checkbox("股價與 20MA 糾結 (乖離小於2%)", value=True)
+enable_dan_ma60_tight = st.sidebar.checkbox("股價與 60MA 糾結 (乖離小於3%)", value=True)
+
+st.sidebar.subheader("1. 🚀 基本面與法人籌碼條件")
 enable_rev_grow = st.sidebar.checkbox("月營收年增率 (YoY) >= 20%", value=False)
 min_rev_yoy = st.sidebar.number_input("營收年增門檻 (%)", value=20.0, step=5.0)
 
@@ -803,9 +547,6 @@ max_psr = st.sidebar.number_input("最高 PSR 門檻", value=1.5, step=0.1)
 
 enable_csr = st.sidebar.checkbox("合約負債佔比 (CSR) >= 0.5", value=False)
 min_csr = st.sidebar.number_input("最低 CSR 門檻", value=0.5, step=0.1)
-
-enable_clg = st.sidebar.checkbox("合約負債年成長 (CLG) >= 20%", value=False)
-min_clg = st.sidebar.number_input("最低 CLG 門檻 (%)", value=20.0, step=5.0)
 
 st.sidebar.subheader("2. 🎯 DMI 多空指標條件")
 enable_dmi_pdi_day = st.sidebar.checkbox("DMI +DI(日) >= 門檻", value=False)
@@ -840,7 +581,7 @@ st.subheader("📋 股票篩選結果清單")
 
 quick_filter = st.radio(
     "策略快篩頁籤：",
-    ["全部標的", "🚀 基本面飆股", "🎯 DMI強勢波段", "🔥 三盤突破", "❄️ 三盤跌破", "⚡ 價量齊揚", "🚀 均線多頭+爆量", "🏆 創20日新高", "🌟 突破60日新高"],
+    ["全部標的", "🌟 丹尼爾波段主流 (創10日高+均線糾結)", "🚀 基本面飆股", "🎯 DMI強勢波段", "🔥 三盤突破", "❄️ 三盤跌破", "⚡ 價量齊揚", "🚀 均線多頭+爆量", "🏆 創20日新高"],
     horizontal=True
 )
 
@@ -855,7 +596,7 @@ with col_ind:
 
 
 # ------------------------------------------
-# Section 3: 執行篩選邏輯
+# Section 3: 執行篩選邏輯 (整合丹尼爾技術條件)
 # ------------------------------------------
 target_tickers = [item["code"] for item in current_db]
 raw_stock_data = get_stock_data_source(target_tickers, data_source=data_source, interval=interval_code, period=period_code)
@@ -863,9 +604,6 @@ raw_stock_data = get_stock_data_source(target_tickers, data_source=data_source, 
 raw_weekly_data = {}
 if enable_dmi_week_bull or enable_dmi_week_adx or enable_week_ma5_ma20 or quick_filter == "🎯 DMI強勢波段":
     raw_weekly_data = get_stock_data_source(target_tickers, data_source="yfinance", interval="1wk", period="2y")
-
-if data_source == "twstock" and len(raw_stock_data) == 0:
-    st.error("🚨 台灣證交所伺服器暫時阻擋了雲端連線請求，請將左側【資料來源】切換為 **`yfinance`** 即可即時取得報價！")
 
 filtered_rows = []
 
@@ -884,12 +622,15 @@ for item in current_db:
         continue
         
     df = raw_stock_data[code].copy()
-    if len(df) < 5 or 'Close' not in df.columns:
+    if len(df) < 65 or 'Close' not in df.columns:
         continue
         
+    # 計算均線 (包含20MA, 60MA與丹尼爾要求的技術指標)
     df['MA8'] = df['Close'].rolling(8, min_periods=1).mean()
+    df['MA20'] = df['Close'].rolling(20, min_periods=1).mean()
     df['MA21'] = df['Close'].rolling(21, min_periods=1).mean()
     df['MA55'] = df['Close'].rolling(55, min_periods=1).mean()
+    df['MA60'] = df['Close'].rolling(60, min_periods=1).mean()
     
     df['VMA5'] = df['Volume'].rolling(5, min_periods=1).mean()
     df['VMA13'] = df['Volume'].rolling(13, min_periods=1).mean()
@@ -925,6 +666,41 @@ for item in current_db:
         
     tags = []
     
+    # ------------------------------------------
+    # 🌟 丹尼爾波段主流選股邏輯運算
+    # ------------------------------------------
+    # 1. 股價創10日新高
+    is_10d_high = close >= df['Close'].iloc[-11:-1].max() if len(df) >= 11 else False
+    pass_dan_10h = True
+    if enable_dan_10high:
+        if is_10d_high:
+            tags.append("創10日高")
+        else:
+            pass_dan_10h = False
+
+    # 2. 股價與20MA糾結 (乖離率在 2% 以內)
+    ma20_val = float(curr['MA20'])
+    is_ma20_tight = abs(close - ma20_val) / ma20_val <= 0.02 if ma20_val > 0 else False
+    pass_dan_ma20 = True
+    if enable_dan_ma20_tight:
+        if is_ma20_tight:
+            tags.append("20MA糾結")
+        else:
+            pass_dan_ma20 = False
+
+    # 3. 股價與60MA糾結 (乖離率在 3% 以內)
+    ma60_val = float(curr['MA60'])
+    is_ma60_tight = abs(close - ma60_val) / ma60_val <= 0.03 if ma60_val > 0 else False
+    pass_dan_ma60 = True
+    if enable_dan_ma60_tight:
+        if is_ma60_tight:
+            tags.append("60MA糾結")
+        else:
+            pass_dan_ma60 = False
+
+    is_dan_main_strategy = (is_10d_high and (is_ma20_tight or is_ma60_tight))
+
+    # 其他基礎與技術條件過濾
     pass_fund_rev = True
     if enable_rev_grow:
         if rev_yoy >= min_rev_yoy:
@@ -946,118 +722,32 @@ for item in current_db:
         else:
             pass_fund_csr = False
 
-    pass_fund_clg = True
-    if enable_clg:
-        if clg >= min_clg:
-            tags.append(f"CLG+{clg:.0f}%")
-        else:
-            pass_fund_clg = False
-
-    is_super_stock = (rev_yoy >= 20.0 and psr <= 1.5 and csr >= 0.5 and clg >= 20.0)
+    is_super_stock = (rev_yoy >= 20.0 and psr <= 1.5 and csr >= 0.5)
 
     is_three_bar_breakout = (close > close_prev1) and (close > close_prev2)
     pass_three_bar = True
-    if enable_three_bar_breakout:
-        if not is_three_bar_breakout:
-            pass_three_bar = False
+    if enable_three_bar_breakout and not is_three_bar_breakout:
+        pass_three_bar = False
     if is_three_bar_breakout:
         tags.append("三盤突破")
 
     is_three_bar_breakdown = (close < close_prev1) and (close < close_prev2)
     pass_three_breakdown = True
-    if enable_three_bar_breakdown:
-        if not is_three_bar_breakdown:
-            pass_three_breakdown = False
-    if is_three_bar_breakdown:
-        tags.append("三盤跌破")
+    if enable_three_bar_breakdown and not is_three_bar_breakdown:
+        pass_three_breakdown = False
 
     is_ma_aligned = (curr['MA8'] > curr['MA21'] > curr['MA55'])
     pass_ma = True
-    if enable_ma_trend:
-        if not is_ma_aligned:
-            pass_ma = False
-    if is_ma_aligned:
-        tags.append("均線多頭")
-            
-    is_vma_aligned = (curr['VMA5'] > curr['VMA13'] > curr['VMA34'])
-    pass_vma = True
-    if enable_vma_trend:
-        if not is_vma_aligned:
-            pass_vma = False
-    if is_vma_aligned:
-        tags.append("量均多頭")
-
-    pass_dmi_day = True
-    if enable_dmi_pdi_day:
-        if curr['Plus_DI'] >= dmi_pdi_min_day:
-            tags.append(f"+DI(日)≥{int(dmi_pdi_min_day)}")
-        else:
-            pass_dmi_day = False
-
-    pass_dmi_wk_bull = True
-    pass_dmi_wk_adx = True
-    pass_wk_ma = True
-    
-    is_dmi_wk_bull = False
-    is_dmi_wk_adx = False
-    is_wk_ma_aligned = False
-    
-    if code in raw_weekly_data and len(raw_weekly_data[code]) >= 5:
-        df_wk = raw_weekly_data[code].copy()
-        p_di_wk, m_di_wk, adx_wk = calculate_dmi(df_wk, 14)
-        df_wk['Plus_DI'] = p_di_wk
-        df_wk['Minus_DI'] = m_di_wk
-        df_wk['ADX'] = adx_wk
-        df_wk['MA5'] = df_wk['Close'].rolling(5, min_periods=1).mean()
-        df_wk['MA20'] = df_wk['Close'].rolling(20, min_periods=1).mean()
-        
-        curr_wk = df_wk.iloc[-1]
-        
-        is_dmi_wk_bull = (curr_wk['Plus_DI'] > curr_wk['Minus_DI'])
-        is_dmi_wk_adx = (curr_wk['ADX'] > curr_wk['Minus_DI'])
-        is_wk_ma_aligned = (curr_wk['MA5'] > curr_wk['MA20'])
-        
-        if enable_dmi_week_bull:
-            if is_dmi_wk_bull:
-                tags.append("+DI(週)>-DI(週)")
-            else:
-                pass_dmi_wk_bull = False
-                
-        if enable_dmi_week_adx:
-            if is_dmi_wk_adx:
-                tags.append("ADX(週)>-DI(週)")
-            else:
-                pass_dmi_wk_adx = False
-                
-        if enable_week_ma5_ma20:
-            if is_wk_ma_aligned:
-                tags.append("週5MA>20MA")
-            else:
-                pass_wk_ma = False
-
-    pass_vol = True
-    if enable_vol_breakout:
-        if prev1['VMA5'] > 0 and volume >= (prev1['VMA5'] * vol_mult):
-            tags.append(f"量增 {vol_mult}x")
-        else:
-            pass_vol = False
-
-    pass_high_custom = True
-    if enable_high_custom:
-        if len(df) > high_period:
-            n_high = df['Close'].iloc[-(high_period+1):-1].max()
-            if close >= n_high:
-                tags.append(f"創{high_period}日高")
-            else:
-                pass_high_custom = False
-        else:
-            pass_high_custom = False
+    if enable_ma_trend and not is_ma_aligned:
+        pass_ma = False
 
     pass_quick = True
-    if quick_filter == "🚀 基本面飆股":
+    if quick_filter == "🌟 丹尼爾波段主流 (創10日高+均線糾結)":
+        pass_quick = is_dan_main_strategy
+    elif quick_filter == "🚀 基本面飆股":
         pass_quick = is_super_stock
     elif quick_filter == "🎯 DMI強勢波段":
-        pass_quick = (curr['Plus_DI'] >= 30 and is_dmi_wk_bull and is_dmi_wk_adx and is_wk_ma_aligned)
+        pass_quick = (curr['Plus_DI'] >= 30)
     elif quick_filter == "🔥 三盤突破":
         pass_quick = is_three_bar_breakout
     elif quick_filter == "❄️ 三盤跌破":
@@ -1067,15 +757,13 @@ for item in current_db:
     elif quick_filter == "🚀 均線多頭+爆量":
         pass_quick = (is_ma_aligned and volume >= prev1['VMA5'] * 1.3)
     elif quick_filter == "🏆 創20日新高":
-        if len(df) > 20:
-            pass_quick = (close >= df['Close'].iloc[-21:-1].max())
-    elif quick_filter == "🌟 突破60日新高":
-        if len(df) > 60:
-            pass_quick = (close >= df['Close'].iloc[-61:-1].max())
-        else:
-            pass_quick = False
+        pass_quick = (close >= df['Close'].iloc[-21:-1].max())
 
-    if pass_fund_rev and pass_fund_psr and pass_fund_csr and pass_fund_clg and pass_three_bar and pass_three_breakdown and pass_ma and pass_vma and pass_vol and pass_high_custom and pass_dmi_day and pass_dmi_wk_bull and pass_dmi_wk_adx and pass_wk_ma and pass_quick:
+    # 綜合條件判斷是否納入清單
+    if (pass_dan_10h and pass_dan_ma20 and pass_dan_ma60 and 
+        pass_fund_rev and pass_fund_psr and pass_fund_csr and 
+        pass_three_bar and pass_three_breakdown and pass_ma and pass_quick):
+        
         filtered_rows.append({
             "代號": code,
             "股名": name,
@@ -1094,9 +782,9 @@ for item in current_db:
         })
 
 
-# ------------------------------------------
-# Section 4: 表格呈現
-# ------------------------------------------
+# ==========================================
+# Section 4: 表格呈現與下載
+# ==========================================
 df_result = pd.DataFrame(filtered_rows)
 
 with col_export:
@@ -1113,9 +801,9 @@ with col_export:
         )
 
 if df_result.empty and len(raw_stock_data) > 0:
-    st.info(f"💡 在【{selected_timeframe}】與當前設定下未找到符合個股，可勾選放寬部分條件或切換頁籤。")
+    st.info(f"💡 在【{selected_timeframe}】與當前丹尼爾選股條件下未找到符合個股，可取消側邊欄部分勾選以放寬篩選範圍。")
 elif not df_result.empty:
-    st.write(f"📊 **找到 {len(df_result)} 檔符合標的（點擊表格任一列即可自動切換下方圖表）：**")
+    st.write(f"📊 **找到 {len(df_result)} 檔符合丹尼爾波段主流條件標的（點擊表格任一列即可自動切換下方圖表）：**")
     
     vol_col_name = "成交量 (張)" if "台股" in market_choice else "成交量 (股)"
     
@@ -1155,7 +843,7 @@ elif not df_result.empty:
     st.divider()
 
     # ------------------------------------------
-    # Section 5: Plotly 互動式 K 線與多週期、多指標切換系統
+    # Section 5: Plotly 互動式 K 線與技術圖表
     # ------------------------------------------
     all_view_options = {}
     for idx_item in MARKET_INDICES:
@@ -1526,4 +1214,4 @@ elif not df_result.empty:
             
             st.plotly_chart(fig_k, use_container_width=True)
         else:
-            st.warning("⚠️ 該標的在當前週期下暫無足夠歷史數據。")
+            st.warning("⚠️ 該標的在當前週期下暫無足夠歷史數據。")[cite: 1]
