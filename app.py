@@ -505,7 +505,7 @@ with col3:
 st.divider()
 
 # ------------------------------------------
-# Sidebar: 側邊欄設定 (已整合丹尼爾選股模組參數)
+# Sidebar: 側邊欄設定 (已整合丹尼爾選股模組)
 # ------------------------------------------
 st.sidebar.header("⚙️ 篩選條件設定")
 
@@ -531,14 +531,14 @@ selected_timeframe = st.sidebar.selectbox("⏱️ 選股分析週期", list(time
 interval_code, period_code = timeframe_map[selected_timeframe]
 
 # ------------------------------------------
-# 🌟 整合丹尼爾「波段主流股」特選與技術指標條件
+# 🌟 丹尼爾「波段主流股」特選與技術指標條件
 # ------------------------------------------
 st.sidebar.subheader("🎯 丹尼爾波段主流股特選模組")
 enable_dan_10high = st.sidebar.checkbox("股價創 10 日新高", value=True)
 enable_dan_ma20_tight = st.sidebar.checkbox("股價與 20MA 糾結 (乖離小於2%)", value=True)
 enable_dan_ma60_tight = st.sidebar.checkbox("股價與 60MA 糾結 (乖離小於3%)", value=True)
 
-st.sidebar.subheader("1. 🚀 基本面與法人籌碼條件")
+st.sidebar.subheader("1. 🚀 基本面飆股條件")
 enable_rev_grow = st.sidebar.checkbox("月營收年增率 (YoY) >= 20%", value=False)
 min_rev_yoy = st.sidebar.number_input("營收年增門檻 (%)", value=20.0, step=5.0)
 
@@ -547,6 +547,9 @@ max_psr = st.sidebar.number_input("最高 PSR 門檻", value=1.5, step=0.1)
 
 enable_csr = st.sidebar.checkbox("合約負債佔比 (CSR) >= 0.5", value=False)
 min_csr = st.sidebar.number_input("最低 CSR 門檻", value=0.5, step=0.1)
+
+enable_clg = st.sidebar.checkbox("合約負債年成長 (CLG) >= 20%", value=False)
+min_clg = st.sidebar.number_input("最低 CLG 門檻 (%)", value=20.0, step=5.0)
 
 st.sidebar.subheader("2. 🎯 DMI 多空指標條件")
 enable_dmi_pdi_day = st.sidebar.checkbox("DMI +DI(日) >= 門檻", value=False)
@@ -581,7 +584,7 @@ st.subheader("📋 股票篩選結果清單")
 
 quick_filter = st.radio(
     "策略快篩頁籤：",
-    ["全部標的", "🌟 丹尼爾波段主流 (創10日高+均線糾結)", "🚀 基本面飆股", "🎯 DMI強勢波段", "🔥 三盤突破", "❄️ 三盤跌破", "⚡ 價量齊揚", "🚀 均線多頭+爆量", "🏆 創20日新高"],
+    ["全部標的", "🌟 丹尼爾波段主流 (創10日高+均線糾結)", "🚀 基本面飆股", "🎯 DMI強勢波段", "🔥 三盤突破", "❄️ 三盤跌破", "⚡ 價量齊揚", "🚀 均線多頭+爆量", "🏆 創20日新高", "🌟 突破60日新高"],
     horizontal=True
 )
 
@@ -596,7 +599,7 @@ with col_ind:
 
 
 # ------------------------------------------
-# Section 3: 執行篩選邏輯 (整合丹尼爾技術條件)
+# Section 3: 執行篩選邏輯
 # ------------------------------------------
 target_tickers = [item["code"] for item in current_db]
 raw_stock_data = get_stock_data_source(target_tickers, data_source=data_source, interval=interval_code, period=period_code)
@@ -625,7 +628,6 @@ for item in current_db:
     if len(df) < 65 or 'Close' not in df.columns:
         continue
         
-    # 計算均線 (包含20MA, 60MA與丹尼爾要求的技術指標)
     df['MA8'] = df['Close'].rolling(8, min_periods=1).mean()
     df['MA20'] = df['Close'].rolling(20, min_periods=1).mean()
     df['MA21'] = df['Close'].rolling(21, min_periods=1).mean()
@@ -669,7 +671,6 @@ for item in current_db:
     # ------------------------------------------
     # 🌟 丹尼爾波段主流選股邏輯運算
     # ------------------------------------------
-    # 1. 股價創10日新高
     is_10d_high = close >= df['Close'].iloc[-11:-1].max() if len(df) >= 11 else False
     pass_dan_10h = True
     if enable_dan_10high:
@@ -678,7 +679,6 @@ for item in current_db:
         else:
             pass_dan_10h = False
 
-    # 2. 股價與20MA糾結 (乖離率在 2% 以內)
     ma20_val = float(curr['MA20'])
     is_ma20_tight = abs(close - ma20_val) / ma20_val <= 0.02 if ma20_val > 0 else False
     pass_dan_ma20 = True
@@ -688,7 +688,6 @@ for item in current_db:
         else:
             pass_dan_ma20 = False
 
-    # 3. 股價與60MA糾結 (乖離率在 3% 以內)
     ma60_val = float(curr['MA60'])
     is_ma60_tight = abs(close - ma60_val) / ma60_val <= 0.03 if ma60_val > 0 else False
     pass_dan_ma60 = True
@@ -700,7 +699,6 @@ for item in current_db:
 
     is_dan_main_strategy = (is_10d_high and (is_ma20_tight or is_ma60_tight))
 
-    # 其他基礎與技術條件過濾
     pass_fund_rev = True
     if enable_rev_grow:
         if rev_yoy >= min_rev_yoy:
@@ -722,7 +720,14 @@ for item in current_db:
         else:
             pass_fund_csr = False
 
-    is_super_stock = (rev_yoy >= 20.0 and psr <= 1.5 and csr >= 0.5)
+    pass_fund_clg = True
+    if enable_clg:
+        if clg >= min_clg:
+            tags.append(f"CLG+{clg:.0f}%")
+        else:
+            pass_fund_clg = False
+
+    is_super_stock = (rev_yoy >= 20.0 and psr <= 1.5 and csr >= 0.5 and clg >= 20.0)
 
     is_three_bar_breakout = (close > close_prev1) and (close > close_prev2)
     pass_three_bar = True
@@ -735,11 +740,20 @@ for item in current_db:
     pass_three_breakdown = True
     if enable_three_bar_breakdown and not is_three_bar_breakdown:
         pass_three_breakdown = False
+    if is_three_bar_breakdown:
+        tags.append("三盤跌破")
 
     is_ma_aligned = (curr['MA8'] > curr['MA21'] > curr['MA55'])
     pass_ma = True
     if enable_ma_trend and not is_ma_aligned:
         pass_ma = False
+    if is_ma_aligned:
+        tags.append("均線多頭")
+            
+    is_vma_aligned = (curr['VMA5'] > curr['VMA13'] > curr['VMA34'])
+    pass_vma = True
+    if enable_vma_trend and not is_vma_aligned:
+        pass_vma = False
 
     pass_quick = True
     if quick_filter == "🌟 丹尼爾波段主流 (創10日高+均線糾結)":
@@ -758,11 +772,15 @@ for item in current_db:
         pass_quick = (is_ma_aligned and volume >= prev1['VMA5'] * 1.3)
     elif quick_filter == "🏆 創20日新高":
         pass_quick = (close >= df['Close'].iloc[-21:-1].max())
+    elif quick_filter == "🌟 突破60日新高":
+        if len(df) > 60:
+            pass_quick = (close >= df['Close'].iloc[-61:-1].max())
+        else:
+            pass_quick = False
 
-    # 綜合條件判斷是否納入清單
     if (pass_dan_10h and pass_dan_ma20 and pass_dan_ma60 and 
-        pass_fund_rev and pass_fund_psr and pass_fund_csr and 
-        pass_three_bar and pass_three_breakdown and pass_ma and pass_quick):
+        pass_fund_rev and pass_fund_psr and pass_fund_csr and pass_fund_clg and 
+        pass_three_bar and pass_three_breakdown and pass_ma and pass_vma and pass_quick):
         
         filtered_rows.append({
             "代號": code,
@@ -783,7 +801,7 @@ for item in current_db:
 
 
 # ==========================================
-# Section 4: 表格呈現與下載
+# Section 4: 表格呈現
 # ==========================================
 df_result = pd.DataFrame(filtered_rows)
 
@@ -801,9 +819,9 @@ with col_export:
         )
 
 if df_result.empty and len(raw_stock_data) > 0:
-    st.info(f"💡 在【{selected_timeframe}】與當前丹尼爾選股條件下未找到符合個股，可取消側邊欄部分勾選以放寬篩選範圍。")
+    st.info(f"💡 在【{selected_timeframe}】與當前設定下未找到符合個股，可勾選放寬部分條件或切換頁籤。")
 elif not df_result.empty:
-    st.write(f"📊 **找到 {len(df_result)} 檔符合丹尼爾波段主流條件標的（點擊表格任一列即可自動切換下方圖表）：**")
+    st.write(f"📊 **找到 {len(df_result)} 檔符合標的（點擊表格任一列即可自動切換下方圖表）：**")
     
     vol_col_name = "成交量 (張)" if "台股" in market_choice else "成交量 (股)"
     
@@ -843,7 +861,7 @@ elif not df_result.empty:
     st.divider()
 
     # ------------------------------------------
-    # Section 5: Plotly 互動式 K 線與技術圖表
+    # Section 5: Plotly 互動式 K 線與多週期、多指標切換系統
     # ------------------------------------------
     all_view_options = {}
     for idx_item in MARKET_INDICES:
@@ -1214,4 +1232,4 @@ elif not df_result.empty:
             
             st.plotly_chart(fig_k, use_container_width=True)
         else:
-            st.warning("⚠️ 該標的在當前週期下暫無足夠歷史數據。")[cite: 1]
+            st.warning("⚠️ 該標的在當前週期下暫無足夠歷史數據。")
